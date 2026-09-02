@@ -12,7 +12,7 @@ Requirements for milestone v1.0 (Ollama Cloud Provider).
 - [x] **OLLAMA-01**: Ollama Cloud is configured via `.env` (API key + base URL), as a distinct provider from the existing self-hosted local Ollama
 - [x] **OLLAMA-02**: Ollama Cloud appears as a selectable provider in the sysadmin AI Model Catalog page once its key is set
 - [x] **OLLAMA-03**: The sysadmin model picker for Ollama Cloud is populated from Ollama's live model-listing endpoint, not free text
-- [ ] **OLLAMA-04**: An operator can add, price, plan-gate, and verify (`ModelProbe`) an Ollama Cloud model in the sysadmin catalog, the same as Anthropic/OpenAI
+- [x] **OLLAMA-04**: An operator can add, price, plan-gate, and verify (`ModelProbe`) an Ollama Cloud model in the sysadmin catalog, the same as Anthropic/OpenAI
 - [ ] **OLLAMA-05**: The AI service health dashboard correctly reports Ollama Cloud's status once configured (no false failures from an unhandled provider case)
 - [ ] **OLLAMA-06**: A real chat turn (streaming + tool calls) succeeds against a verified Ollama Cloud model on production-shaped infrastructure (Horizon/Redis/Reverb)
 
@@ -40,7 +40,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OLLAMA-01 | Phase 1 | Complete |
 | OLLAMA-02 | Phase 1 | Complete |
 | OLLAMA-03 | Phase 1 | Complete |
-| OLLAMA-04 | Phase 1 | Pending |
+| OLLAMA-04 | Phase 1 | Complete |
 | OLLAMA-05 | Phase 1 | Pending |
 | OLLAMA-06 | Phase 1 | Pending |
 
