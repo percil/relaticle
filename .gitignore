@@ -68,3 +68,5 @@ test-results.xml
 
 # Pest browser plugin writes a PNG here for every failed assertion
 /tests/Browser/Screenshots
+
+graphify-out/
