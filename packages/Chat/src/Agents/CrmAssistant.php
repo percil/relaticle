@@ -651,6 +651,16 @@ PROMPT;
             // generationConfig rather than hoisting them to the request top level,
             // so function_calling_config mode cannot be set this way and the
             // sequential-write guard would be unenforceable.
+            //
+            // Ollama (and Ollama Cloud, which shares this driver) is absent for the
+            // same reason: BuildsTextRequests only hoists format, keep_alive, think,
+            // logprobs, and top_logprobs to the native api/chat request's top level.
+            // Everything else, including parallel_tool_calls, is merged into the
+            // options bag of Ollama's own runtime options, which defines no such key.
+            // A live POST to api/chat confirmed the key is silently dropped rather
+            // than rejected, so a guard measured from it would be a claim the
+            // transport cannot cash. Ollama Cloud rows carry the weaker prompt guard
+            // and lean on the PendingAction approval gate, which is unchanged.
             default => [],
         };
     }

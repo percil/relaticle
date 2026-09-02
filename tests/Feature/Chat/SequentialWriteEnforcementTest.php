@@ -57,6 +57,20 @@ it('returns provider-specific options for parallel-tool-call control', function 
     expect($agent->providerOptions(Lab::Anthropic))->toHaveKey('tool_choice');
 });
 
+/**
+ * Ollama's native chat endpoint has nowhere to put parallel_tool_calls (it merges
+ * unrecognized keys into a runtime options bag the provider does not read), so
+ * both the driver key and the app's config key must stay pinned to the weaker
+ * default. A future contributor wiring one without the other would otherwise
+ * ship a guard measured on one path and transmitted on neither.
+ */
+it('leaves ollama and ollama cloud on the default write guard', function (): void {
+    $agent = resolve(CrmAssistant::class);
+
+    expect($agent->providerOptions(Lab::Ollama))->toBe([]);
+    expect($agent->providerOptions('ollama_cloud'))->toBe([]);
+});
+
 it('caches both the static prefix and the growing transcript on Anthropic', function (): void {
     $options = resolve(CrmAssistant::class)->providerOptions(Lab::Anthropic);
 
