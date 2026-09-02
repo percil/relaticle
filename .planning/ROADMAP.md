@@ -39,11 +39,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case
   5. A user completes a real chat turn on a verified Ollama Cloud model — streaming, tool calls, and proposal approve/reject — against Horizon, Redis, and Reverb
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Wire config, live listing, and the health probe end to end on one model; resolve the write guard; seed the catalog and picker icon (wave 1)
+- [x] 01-01-PLAN.md — Wire config, live listing, and the health probe end to end on one model; resolve the write guard; seed the catalog and picker icon (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -62,7 +62,7 @@ Phases execute in numeric order: 1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Ollama Cloud Provider Integration | 0/3 | Not started | - |
+| 1. Ollama Cloud Provider Integration | 1/3 | In Progress|  |
 
 ## Notes
 

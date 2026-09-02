@@ -12,6 +12,10 @@
   - Auth: `ANTHROPIC_API_KEY`
 - Ollama (self-hosted, optional) - Local model serving
   - Config: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`
+- Ollama Cloud - Managed, subscription-billed Ollama hosting; distinct provider key from self-hosted Ollama
+  - Auth: `OLLAMA_CLOUD_API_KEY`
+  - Config: `OLLAMA_CLOUD_BASE_URL` (default `https://ollama.com`)
+  - Listing: OpenAI-compatible `GET /v1/models`; health probe: `GET /v1/models/{model}`
 - Generic OpenAI-compatible self-hosted endpoint (vLLM/LM Studio/LocalAI)
   - Config: `SELF_HOSTED_AI_URL`, `SELF_HOSTED_AI_KEY`, `SELF_HOSTED_AI_MODELS`
   - Models only appear in chat picker when their provider env vars are set
