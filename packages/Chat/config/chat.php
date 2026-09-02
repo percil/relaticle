@@ -217,6 +217,12 @@ return [
         ['label' => 'Gemini 3 Flash', 'provider' => 'gemini', 'model' => 'gemini-3-flash', 'min_plan' => 'free', 'credit_multiplier' => 1.0, 'input_per_mtok' => 0.50, 'output_per_mtok' => 3.00, 'auto' => false, 'enabled' => true, 'capabilities' => ['supports_tools' => false, 'write_guard' => 'prompt'], 'verified_at' => null],
         ['label' => 'Gemini 3.1 Pro', 'provider' => 'gemini', 'model' => 'gemini-3.1-pro', 'min_plan' => 'pro', 'credit_multiplier' => 1.5, 'input_per_mtok' => 2.00, 'output_per_mtok' => 12.00, 'auto' => false, 'enabled' => true, 'capabilities' => ['supports_tools' => false, 'write_guard' => 'prompt'], 'verified_at' => null],
 
+        // Ollama Cloud bills a subscription credit pool, not per-token, so
+        // input_per_mtok/output_per_mtok stay null rather than a figure that would
+        // not reconcile against the invoice.
+        ['label' => 'GPT-OSS 20B (Ollama Cloud)', 'provider' => 'ollama_cloud', 'model' => 'gpt-oss:20b', 'min_plan' => 'free', 'credit_multiplier' => 1.0, 'input_per_mtok' => null, 'output_per_mtok' => null, 'auto' => false, 'enabled' => true, 'capabilities' => null, 'verified_at' => null],
+        ['label' => 'GPT-OSS 120B (Ollama Cloud)', 'provider' => 'ollama_cloud', 'model' => 'gpt-oss:120b', 'min_plan' => 'pro', 'credit_multiplier' => 1.5, 'input_per_mtok' => null, 'output_per_mtok' => null, 'auto' => false, 'enabled' => true, 'capabilities' => null, 'verified_at' => null],
+
         // Retired: no longer offered, kept only so the sysadmin spend widget can
         // price ai_credit_transactions rows that still name these models.
         ['label' => 'Sonnet 4.6', 'provider' => 'anthropic', 'model' => 'claude-sonnet-4-6', 'min_plan' => 'free', 'credit_multiplier' => 1.0, 'input_per_mtok' => 3.00, 'output_per_mtok' => 15.00, 'auto' => false, 'enabled' => false, 'capabilities' => null, 'verified_at' => null],

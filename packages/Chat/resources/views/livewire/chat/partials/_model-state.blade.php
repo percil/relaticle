@@ -21,5 +21,6 @@ modelOptions: @js(app(\Relaticle\Chat\Services\ModelRegistry::class)->pickerOpti
         'openai' => svg('ri-openai-fill')->toHtml(),
         'ollama' => svg('ri-server-line')->toHtml(),
         'selfhosted' => svg('ri-server-line')->toHtml(),
+        'ollama_cloud' => svg('ri-cloud-line')->toHtml(),
     ]),
 }),
