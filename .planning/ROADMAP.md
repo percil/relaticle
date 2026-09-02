@@ -35,7 +35,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. An operator can save an Ollama Cloud model with pricing, plan gating, and credit multiplier, and it shows the Verified badge once `ModelProbe` passes against a real request
   4. The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case
   5. A user completes a real chat turn on a verified Ollama Cloud model — streaming, tool calls, and proposal approve/reject — against Horizon, Redis, and Reverb
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Wire config, live listing, and the health probe end to end on one model; resolve the write guard; seed the catalog and picker icon (wave 1)
+- [ ] 01-02-PLAN.md — Add, price, plan-gate, and verify both Ollama Cloud rows in the live sysadmin catalog; confirm the health dashboard (wave 2)
+- [ ] 01-03-PLAN.md — Time a multi-tool-call turn, find the concurrency ceiling, and walk a real streaming propose-and-approve chat turn (wave 3)
 **Build order**: config entry → live model listing → health-check arm → first verified catalog row → real chat turn. The health-check arm (`ChatProviderCheck::probe()`) is load-bearing and must not be deferred past the first catalog row, or the dashboard breaks on first use.
 
 ## Progress
@@ -45,7 +49,7 @@ Phases execute in numeric order: 1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Ollama Cloud Provider Integration | 0/TBD | Not started | - |
+| 1. Ollama Cloud Provider Integration | 0/3 | Not started | - |
 
 ## Notes
 
