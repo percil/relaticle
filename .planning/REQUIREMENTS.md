@@ -37,18 +37,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OLLAMA-01 | TBD | Pending |
-| OLLAMA-02 | TBD | Pending |
-| OLLAMA-03 | TBD | Pending |
-| OLLAMA-04 | TBD | Pending |
-| OLLAMA-05 | TBD | Pending |
-| OLLAMA-06 | TBD | Pending |
+| OLLAMA-01 | Phase 1 | Pending |
+| OLLAMA-02 | Phase 1 | Pending |
+| OLLAMA-03 | Phase 1 | Pending |
+| OLLAMA-04 | Phase 1 | Pending |
+| OLLAMA-05 | Phase 1 | Pending |
+| OLLAMA-06 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0
-- Unmapped: 6 ⚠️ (mapped by roadmapper next)
+- Mapped to phases: 6
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-02*
-*Last updated: 2026-09-02 after initial definition*
+*Last updated: 2026-09-02 after roadmap creation (all requirements mapped to Phase 1)*
