@@ -23,6 +23,15 @@ MCP, or chat.
 - **Success metric**: Not yet defined in planning docs — set this at the first milestone that touches billing/growth
 - **Strategy notes**: None linked yet
 
+## Current Milestone: v1.0 Ollama Cloud Provider
+
+**Goal:** Add Ollama Cloud as a fully-fledged AI model provider, configured and managed the same way as Anthropic/OpenAI/Gemini.
+
+**Target features:**
+- New `ollama_cloud` provider entry in `config/ai.php` (env-driven API key + base URL), separate from the existing local self-hosted `ollama` entry
+- Treated as a normal cloud provider in the chat model catalog: plan-gated, priced, verified via `ModelProbe`, managed through the sysadmin Model Catalog page
+- Live model listing: `ProviderModelCatalog` extended so the sysadmin catalog's model picker is fed from Ollama Cloud's own models endpoint instead of free text
+
 ## Requirements
 
 ### Validated
@@ -43,7 +52,9 @@ MCP, or chat.
 
 ### Active
 
-(None yet — scope for the next stretch of work will be set via `/gsd-new-milestone`, not during this init)
+- [ ] Ollama Cloud added as a provider in `config/ai.php`, keyed by `OLLAMA_CLOUD_API_KEY`
+- [ ] Ollama Cloud models managed via the sysadmin Model Catalog page (plan-gated, priced, `ModelProbe`-verified), like Anthropic/OpenAI
+- [ ] Sysadmin Model Catalog's model picker fetches Ollama Cloud's live model list instead of relying on free text
 
 ### Out of Scope
 
@@ -115,4 +126,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after initialization*
+*Last updated: 2026-09-02 after starting milestone v1.0 (Ollama Cloud Provider)*
