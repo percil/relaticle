@@ -91,6 +91,26 @@ it('honours a provider base url override', function (): void {
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://gateway.internal/openai/v1/models/gpt-5.5');
 });
 
+it('retrieves the model from ollama cloud with the credentials a chat turn uses', function (): void {
+    Http::fake();
+
+    configuredCheck('ollama_cloud', 'gpt-oss:20b')->run();
+
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'GET'
+        && $request->url() === 'https://ollama.com/v1/models/gpt-oss:20b'
+        && $request->hasHeader('Authorization', 'Bearer test-key'));
+});
+
+it('honours an ollama cloud base url override', function (): void {
+    Http::fake();
+
+    config()->set('ai.providers.ollama_cloud.url', 'https://gateway.internal/ollama-cloud');
+
+    configuredCheck('ollama_cloud', 'gpt-oss:20b')->run();
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://gateway.internal/ollama-cloud/v1/models/gpt-oss:20b');
+});
+
 it('passes when the provider serves the model', function (): void {
     Http::fake([
         'api.openai.com/*' => Http::response(['id' => 'gpt-5.5', 'object' => 'model']),

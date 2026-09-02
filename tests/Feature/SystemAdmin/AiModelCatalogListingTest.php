@@ -89,3 +89,41 @@ it('does not re-fetch a listing it already has', function (): void {
 
     Http::assertSentCount(1);
 });
+
+/**
+ * End-to-end: config, listing, cache, and the panel's model Select are wired as one
+ * path. The warning only stays silent when a real non-empty listing came back
+ * containing that exact tag.
+ */
+it('says nothing about an ollama cloud model the provider does list', function (): void {
+    config()->set('ai.providers.ollama_cloud.key', 'test-key');
+    Http::fake(['ollama.com/v1/models*' => Http::response(['data' => [
+        ['id' => 'gpt-oss:20b', 'object' => 'model', 'created' => 1754352000, 'owned_by' => 'ollama'],
+    ]])]);
+
+    livewire(ManageAiSettings::class)
+        ->fillForm(['models' => [ChatCatalog::entry(['provider' => 'ollama_cloud', 'model' => 'gpt-oss:20b'])], 'anthropic_effort' => 'high'])
+        ->assertSuccessful()
+        ->assertDontSee('not listed by the provider');
+});
+
+it('round-trips an ollama cloud tag without normalizing the colon or suffix', function (): void {
+    config()->set('ai.providers.ollama_cloud.key', 'test-key');
+    Http::fake(['ollama.com/v1/models*' => Http::response(['data' => [
+        ['id' => 'gpt-oss:20b', 'object' => 'model', 'created' => 1754352000, 'owned_by' => 'ollama'],
+    ]])]);
+
+    $catalog = resolve(ProviderModelCatalog::class);
+
+    expect(array_keys($catalog('ollama_cloud')))->toBe(['gpt-oss:20b']);
+});
+
+it('says nothing when the ollama cloud listing returns no list at all', function (): void {
+    config()->set('ai.providers.ollama_cloud.key', 'test-key');
+    Http::fake(['ollama.com/v1/models*' => Http::response([], 500)]);
+
+    livewire(ManageAiSettings::class)
+        ->fillForm(['models' => [ChatCatalog::entry(['provider' => 'ollama_cloud', 'model' => 'gpt-oss:20b'])], 'anthropic_effort' => 'high'])
+        ->assertSuccessful()
+        ->assertDontSee('not listed by the provider');
+});

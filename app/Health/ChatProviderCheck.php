@@ -101,6 +101,8 @@ final class ChatProviderCheck extends Check
             ])->baseUrl($this->baseUrl('https://api.anthropic.com/v1')),
             'openai' => Http::withToken($key)
                 ->baseUrl($this->baseUrl('https://api.openai.com/v1')),
+            'ollama_cloud' => Http::withToken($key)
+                ->baseUrl($this->baseUrl('https://ollama.com').'/v1'),
             default => null,
         };
 

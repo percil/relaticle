@@ -107,6 +107,12 @@ return [
             'url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
         ],
 
+        'ollama_cloud' => [
+            'driver' => 'ollama',
+            'key' => env('OLLAMA_CLOUD_API_KEY', ''),
+            'url' => env('OLLAMA_CLOUD_BASE_URL', 'https://ollama.com'),
+        ],
+
         'selfhosted' => [
             'driver' => 'openai',
             'key' => env('SELF_HOSTED_AI_KEY', ''),

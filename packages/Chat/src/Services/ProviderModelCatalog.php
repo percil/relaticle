@@ -83,6 +83,8 @@ final readonly class ProviderModelCatalog
                 ->get('https://api.anthropic.com/v1/models', ['limit' => 100]),
             'openai' => $this->client()->withToken($key)
                 ->get(rtrim((string) config('ai.providers.openai.url', 'https://api.openai.com/v1'), '/').'/models'),
+            'ollama_cloud' => $this->client()->withToken($key)
+                ->get(rtrim((string) config('ai.providers.ollama_cloud.url', 'https://ollama.com'), '/').'/v1/models'),
             default => null,
         };
 
