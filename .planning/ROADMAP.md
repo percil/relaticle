@@ -23,6 +23,7 @@ chat turn on production-shaped infrastructure.
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Ollama Cloud Provider Integration** - Ollama Cloud configured, catalog-managed with live model listing, health-checked, and proven on a real chat turn (completed 2026-09-03)
+- [ ] **Phase 2: Docker Compose Orchestration** - Reverb runs as a real service in both compose files, its browser credentials arrive at request time instead of build time, and the dev stack builds this repo's own image with every third-party service
 
 ## Phase Details
 
@@ -62,11 +63,12 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1
+Phases execute in numeric order: 1, 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Ollama Cloud Provider Integration | 4/4 | Complete    | 2026-09-03 |
+| 2. Docker Compose Orchestration | 0/3 | Planned     | - |
 
 ## Notes
 
@@ -85,3 +87,31 @@ once walked end to end with Horizon, Redis, and Reverb running.
 - Check the write-guard value: `CrmAssistant::providerOptions()` only knows `anthropic` and `openai`. If Ollama's OpenAI-compatible layer supports `parallel_tool_calls: false`, add the arm before probing, since changing it later forces a re-probe.
 - Confirm the account's Ollama concurrency tier and that `isRateLimited()` classifies its error response correctly; keep large (120B+) models `auto: false` until a real multi-tool-call turn is timed well under the 120s timeout.
 - `packages/SystemAdmin` is excluded from PHPStan. Any enum gaining an `ollama_cloud` case needs a manual sweep of SystemAdmin `match` expressions over that enum.
+
+### Phase 2: Docker Compose Orchestration
+
+**Goal:** Prepare orchestration to ease both local testing and production deployment. Local
+tests/dev MUST build the image(s) and come with all the separate 3rd party services.
+**Requirements**: None mapped in REQUIREMENTS.md (all `OLLAMA-01`..`OLLAMA-06` belong to Phase 1). Acceptance derives from the phase goal and from CONTEXT.md decisions D-01 through D-04.
+**Depends on:** Phase 1
+**Success Criteria** (what must be TRUE):
+
+  1. A self-hoster who downloads `compose.yml` and runs `docker compose up -d` gets a running `reverb` container alongside app, horizon, scheduler, postgres and redis, and the public self-hosting guide documents it
+  2. The browser receives its Reverb key, host, port and scheme from the server at request time, so the one published `ghcr.io/relaticle/relaticle` image works for every self-hoster's own domain and self-generated key (D-01)
+  3. `docker compose -f compose.dev.yml up -d --build` builds this repository's own `Dockerfile` and starts postgres, redis, app, horizon, reverb and mailpit, with chat streaming and mail wired out of the box
+  4. Server-side broadcasts from app and horizon reach the reverb container over plain HTTP on the internal network, never attempted over TLS
+  5. Both compose files pin the same Postgres major version, 17 (D-04)
+  6. Herd and native `composer run dev` remain the everyday inner loop; the containerized stack supplements them (D-03)
+
+**Plans:** 3 plans
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Serve Reverb credentials at request time and rebuild `compose.dev.yml` around this repo's own Dockerfile, proven end to end on a live socket (wave 1, D-01/D-03/D-04)
+- [ ] 02-02-PLAN.md — Add the missing `reverb` sidecar to the self-hoster `compose.yml` and wire both Reverb address families without conflating them (wave 1, D-02/D-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-03-PLAN.md — Document the six-container stack, its three required secrets and the WebSocket proxy path, then verify the phase against a running stack (wave 2, D-02)
+
+**Build order**: runtime credential injection proven on a live socket → production compose sidecar → docs and whole-phase verification. Plans 02-01 and 02-02 touch disjoint files and run in parallel; 02-03 depends on both because it documents what they actually produce.
