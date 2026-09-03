@@ -45,6 +45,18 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM_ADDRESS: hello@relaticle.test
       MAIL_FROM_NAME: Relaticle
+      # AI provider keys, forwarded from the root .env so the fresh-install
+      # catalog's providers (config/ai.php, packages/Chat/config/chat.php)
+      # are actually usable in this container. Without these, docker compose
+      # never injects them: ${VAR} substitution reads the host .env only for
+      # values used directly in this file, not for populating the container's
+      # process environment, so every provider key needs its own explicit
+      # entry here even when it is already set in .env.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
       # Local-only literals shared by app, horizon and reverb so the browser
       # and the Reverb daemon agree on the same application credentials.
       REVERB_APP_ID: relaticle-dev
@@ -107,6 +119,14 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM_ADDRESS: hello@relaticle.test
       MAIL_FROM_NAME: Relaticle
+      # AI provider keys, forwarded from the root .env for the same reason as
+      # the app service: queued chat jobs (ProcessChatMessage et al.) run in
+      # THIS container, so it needs these directly, not just app.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
       REVERB_APP_ID: relaticle-dev
       REVERB_APP_KEY: relaticle-dev-key
       REVERB_APP_SECRET: relaticle-dev-secret
