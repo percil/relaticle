@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 current_phase: 02
 current_phase_name: Docker Compose Orchestration
-status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-09-03T09:48:40.188Z"
+status: verifying
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-09-03T10:11:27.662Z"
 last_activity: 2026-09-03
 last_activity_desc: Phase 02 execution started
-state_head: fb0dd95e71887b46ec19efbc5fd3ecfbb777a533
+state_head: 3e99579ca5aafbd548194bd490986d32e85cce4a
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
 milestone_name: Ollama Cloud Provider
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 Phase: 02 (Docker Compose Orchestration) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-03 — Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 25min | 3 tasks | 2 files |
 | Phase 02 P01 | 35min | 3 tasks | 7 files |
 | Phase 02 P02 | 10min | 2 tasks | 2 files |
+| Phase 02 P03 | ~20min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-01: Renamed compose.dev.yml's Reverb host-port override from REVERB_PORT to DEV_REVERB_PORT to avoid a silent collision with this repo's own .env, which already sets REVERB_PORT=8080 for native/Herd dev and gets auto-loaded by docker compose for ${VAR} substitution.
 - [Phase 02]: 02-01: .env.ci gains REVERB_APP_KEY=ci in place of the deleted VITE_REVERB_APP_KEY=ci, since the Echo bootstrap now reads the key via config('reverb.apps.apps.0.key') and pusher-js still needs a non-empty key to avoid failing the browser suite's assertNoJavaScriptErrors.
 - [Phase 02]: [Phase 02]: 02-02: healthcheck-reverb binary confirmed present in ghcr.io/relaticle/relaticle:latest, resolving RESEARCH.md assumption A4; used directly with no TCP fallback.
+- [Phase 02]: [Phase 02]: 02-03: Proxied the reverb container via a dedicated ws.* subdomain in all three reverse-proxy examples (Nginx, Caddy, Traefik) rather than a shared path, since Reverb's fixed /app/{key} path risks colliding with the CRM panel's own /app path-mode routing.
+- [Phase 02]: [Phase 02]: 02-03: Added REVERB_APP_ID/KEY/SECRET to the Quick Start, Dokploy and Coolify env snippets (Rule 2) since compose.yml guards all three as required and the guide's own onboarding paths would otherwise fail to start.
 
 ### Pending Todos
 
@@ -110,6 +113,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-03T09:48:40.100Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-09-03T10:11:27.567Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None

@@ -68,7 +68,7 @@ Phases execute in numeric order: 1, 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Ollama Cloud Provider Integration | 4/4 | Complete    | 2026-09-03 |
-| 2. Docker Compose Orchestration | 2/3 | In Progress|  |
+| 2. Docker Compose Orchestration | 3/3 | In Progress|  |
 
 ## Notes
 
@@ -103,7 +103,7 @@ tests/dev MUST build the image(s) and come with all the separate 3rd party servi
   5. Both compose files pin the same Postgres major version, 17 (D-04)
   6. Herd and native `composer run dev` remain the everyday inner loop; the containerized stack supplements them (D-03)
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans executed
 Plans:
 **Wave 1**
 
@@ -112,6 +112,6 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-03-PLAN.md — Document the six-container stack, its three required secrets and the WebSocket proxy path, then verify the phase against a running stack (wave 2, D-02)
+- [x] 02-03-PLAN.md — Document the six-container stack, its three required secrets and the WebSocket proxy path, then verify the phase against a running stack (wave 2, D-02)
 
 **Build order**: runtime credential injection proven on a live socket → production compose sidecar → docs and whole-phase verification. Plans 02-01 and 02-02 touch disjoint files and run in parallel; 02-03 depends on both because it documents what they actually produce.
