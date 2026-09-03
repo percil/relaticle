@@ -25,68 +25,81 @@ use Spatie\SecurityAdvisoriesHealthCheck\SecurityAdvisoriesCheck;
 
 final class HealthServiceProvider extends ServiceProvider
 {
+    /**
+     * Chat provider checks derive from config('chat.models'). ChatServiceProvider
+     * overlays the runtime-editable catalog onto that key from its own boot(), which
+     * runs after this provider in bootstrap/providers.php. Building the check list
+     * here, eagerly, would freeze it on the seed in packages/Chat/config/chat.php,
+     * where a row whose capabilities are measured later by ModelProbe still reads
+     * null and is dropped by CatalogEntry::isServable(). Ollama Cloud is the first
+     * provider seeded that way, so its check silently never registered. Deferring
+     * registration to $this->app->booted() runs it after every provider has booted,
+     * which makes this independent of the order in bootstrap/providers.php.
+     */
     public function boot(): void
     {
         if (! $this->isEnabled()) {
             return;
         }
 
-        Health::checks([
-            DatabaseCheck::new(),
+        $this->app->booted(function (): void {
+            Health::checks([
+                DatabaseCheck::new(),
 
-            DatabaseConnectionCountCheck::new()
-                ->warnWhenMoreConnectionsThan(60)
-                ->failWhenMoreConnectionsThan(80),
+                DatabaseConnectionCountCheck::new()
+                    ->warnWhenMoreConnectionsThan(60)
+                    ->failWhenMoreConnectionsThan(80),
 
-            DatabaseSizeCheck::new()
-                ->failWhenSizeAboveGb(errorThresholdGb: 10.0),
+                DatabaseSizeCheck::new()
+                    ->failWhenSizeAboveGb(errorThresholdGb: 10.0),
 
-            DatabaseTableSizeCheck::new()
-                ->table('custom_field_values', maxSizeInMb: 5_000)
-                ->table('notes', maxSizeInMb: 5_000)
-                ->table('companies', maxSizeInMb: 2_000)
-                ->table('people', maxSizeInMb: 2_000)
-                ->table('opportunities', maxSizeInMb: 2_000)
-                ->table('tasks', maxSizeInMb: 2_000)
-                ->table('media', maxSizeInMb: 5_000)
-                ->table('jobs', maxSizeInMb: 1_000),
+                DatabaseTableSizeCheck::new()
+                    ->table('custom_field_values', maxSizeInMb: 5_000)
+                    ->table('notes', maxSizeInMb: 5_000)
+                    ->table('companies', maxSizeInMb: 2_000)
+                    ->table('people', maxSizeInMb: 2_000)
+                    ->table('opportunities', maxSizeInMb: 2_000)
+                    ->table('tasks', maxSizeInMb: 2_000)
+                    ->table('media', maxSizeInMb: 5_000)
+                    ->table('jobs', maxSizeInMb: 1_000),
 
-            RedisCheck::new(),
+                RedisCheck::new(),
 
-            RedisMemoryUsageCheck::new()
-                ->warnWhenAboveMb(500)
-                ->failWhenAboveMb(1_000),
+                RedisMemoryUsageCheck::new()
+                    ->warnWhenAboveMb(500)
+                    ->failWhenAboveMb(1_000),
 
-            HorizonCheck::new(),
+                HorizonCheck::new(),
 
-            QueueCheck::new()
-                ->name('Queue: default'),
+                QueueCheck::new()
+                    ->name('Queue: default'),
 
-            QueueCheck::new()
-                ->name('Queue: imports')
-                ->onQueue('imports'),
+                QueueCheck::new()
+                    ->name('Queue: imports')
+                    ->onQueue('imports'),
 
-            UsedDiskSpaceCheck::new()
-                ->warnWhenUsedSpaceIsAbovePercentage(70)
-                ->failWhenUsedSpaceIsAbovePercentage(90),
+                UsedDiskSpaceCheck::new()
+                    ->warnWhenUsedSpaceIsAbovePercentage(70)
+                    ->failWhenUsedSpaceIsAbovePercentage(90),
 
-            CpuLoadCheck::new()
-                ->failWhenLoadIsHigherInTheLast5Minutes(8.0)
-                ->failWhenLoadIsHigherInTheLast15Minutes(4.0),
+                CpuLoadCheck::new()
+                    ->failWhenLoadIsHigherInTheLast5Minutes(8.0)
+                    ->failWhenLoadIsHigherInTheLast15Minutes(4.0),
 
-            DebugModeCheck::new(),
+                DebugModeCheck::new(),
 
-            EnvironmentCheck::new(),
+                EnvironmentCheck::new(),
 
-            ScheduleCheck::new()
-                ->heartbeatMaxAgeInMinutes(2),
+                ScheduleCheck::new()
+                    ->heartbeatMaxAgeInMinutes(2),
 
-            SecurityAdvisoriesCheck::new(),
+                SecurityAdvisoriesCheck::new(),
 
-            CacheCheck::new(),
+                CacheCheck::new(),
 
-            ...ChatProviderCheck::forConfiguredProviders(),
-        ]);
+                ...ChatProviderCheck::forConfiguredProviders(),
+            ]);
+        });
     }
 
     private function isEnabled(): bool
