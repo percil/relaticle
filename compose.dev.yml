@@ -1,106 +1,192 @@
+# Local dev/test stack. Builds this repository's own Dockerfile and brings up
+# every backing service (Postgres, Redis, Horizon, Reverb, Mailpit) so chat
+# streaming and mail work out of the box on a production-shaped stack.
+#
+# This SUPPLEMENTS the native Herd / `composer run dev` inner loop, it does not
+# replace it (D-03). Use it to validate the containerized stack end to end,
+# per CLAUDE.md's chat verification rule (Horizon running, Redis queue, Reverb
+# up, walked in a real browser) before reporting chat changes done.
+#
+# Runs under its own compose project name so it coexists side by side with any
+# pre-existing Sail-generated dev containers on non-conflicting host ports.
+name: relaticle-dev
+
 services:
-    laravel.test:
-        build:
-            context: ./vendor/laravel/sail/runtimes/8.5
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
-        image: sail-8.5/app
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
-        ports:
-            - '${APP_PORT:-80}:80'
-            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
-        environment:
-            WWWUSER: '${WWWUSER}'
-            LARAVEL_SAIL: 1
-            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
-            IGNITION_LOCAL_SITES_PATH: '${PWD}'
-        volumes:
-            - '.:/var/www/html'
-        networks:
-            - sail
-        depends_on:
-            - pgsql
-            - redis
-            - meilisearch
-            - mailpit
-            - selenium
-    pgsql:
-        image: 'postgres:18-alpine'
-        ports:
-            - '${FORWARD_DB_PORT:-5432}:5432'
-        environment:
-            PGPASSWORD: '${DB_PASSWORD:-secret}'
-            POSTGRES_DB: '${DB_DATABASE}'
-            POSTGRES_USER: '${DB_USERNAME}'
-            POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
-        volumes:
-            - 'sail-pgsql:/var/lib/postgresql'
-            - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
-        networks:
-            - sail
-        healthcheck:
-            test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE}", "-U", "${DB_USERNAME}"]
-            retries: 3
-            timeout: 5s
-    redis:
-        image: 'redis:alpine'
-        ports:
-            - '${FORWARD_REDIS_PORT:-6379}:6379'
-        volumes:
-            - 'sail-redis:/data'
-        networks:
-            - sail
-        healthcheck:
-            test:
-                - CMD
-                - redis-cli
-                - ping
-            retries: 3
-            timeout: 5s
-    meilisearch:
-        image: 'getmeili/meilisearch:latest'
-        ports:
-            - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
-        environment:
-            MEILI_NO_ANALYTICS: '${MEILISEARCH_NO_ANALYTICS:-false}'
-        volumes:
-            - 'sail-meilisearch:/meili_data'
-        networks:
-            - sail
-        healthcheck:
-            test:
-                - CMD
-                - wget
-                - '--no-verbose'
-                - '--spider'
-                - 'http://127.0.0.1:7700/health'
-            retries: 3
-            timeout: 5s
-    mailpit:
-        image: 'axllent/mailpit:latest'
-        ports:
-            - '${FORWARD_MAILPIT_PORT:-1025}:1025'
-            - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
-        networks:
-            - sail
-    selenium:
-        image: seleniarm/standalone-chromium
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
-        volumes:
-            - '/dev/shm:/dev/shm'
-        networks:
-            - sail
-networks:
-    sail:
-        driver: bridge
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: relaticle-dev:local
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      APP_KEY: ${APP_KEY:?APP_KEY is required, copy .env.example to .env and run php artisan key:generate}
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:${APP_PORT:-8080}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: relaticle
+      DB_USERNAME: relaticle
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: null
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      BROADCAST_CONNECTION: reverb
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: hello@relaticle.test
+      MAIL_FROM_NAME: Relaticle
+      # Local-only literals shared by app, horizon and reverb so the browser
+      # and the Reverb daemon agree on the same application credentials.
+      REVERB_APP_ID: relaticle-dev
+      REVERB_APP_KEY: relaticle-dev-key
+      REVERB_APP_SECRET: relaticle-dev-secret
+      # Client-facing (what the echo-assets-hook meta tags render to the browser).
+      # Uses DEV_REVERB_PORT rather than REVERB_PORT for the host-side override:
+      # this repo's own .env already sets REVERB_PORT=8080 for native/Herd dev,
+      # and docker compose auto-loads that root .env for variable substitution,
+      # which would silently collide with the app service's own port 8080.
+      REVERB_HOST: localhost
+      REVERB_PORT: ${DEV_REVERB_PORT:-8081}
+      REVERB_SCHEME: http
+      # Server-to-server (app/horizon pushing broadcasts to the reverb container).
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: relaticle-dev:local
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "horizon"]
+    stop_signal: SIGTERM
+    environment:
+      APP_KEY: ${APP_KEY:?APP_KEY is required, copy .env.example to .env and run php artisan key:generate}
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:${APP_PORT:-8080}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: relaticle
+      DB_USERNAME: relaticle
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: null
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      BROADCAST_CONNECTION: reverb
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: hello@relaticle.test
+      MAIL_FROM_NAME: Relaticle
+      REVERB_APP_ID: relaticle-dev
+      REVERB_APP_KEY: relaticle-dev-key
+      REVERB_APP_SECRET: relaticle-dev-secret
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+      # Disable automations for worker container
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-horizon"]
+      start_period: 10s
+
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: relaticle-dev:local
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    stop_signal: SIGTERM
+    ports:
+      - "${DEV_REVERB_PORT:-8081}:8080"
+    environment:
+      APP_KEY: ${APP_KEY:?APP_KEY is required, copy .env.example to .env and run php artisan key:generate}
+      APP_URL: http://localhost:${APP_PORT:-8080}
+      REVERB_APP_ID: relaticle-dev
+      REVERB_APP_KEY: relaticle-dev-key
+      REVERB_APP_SECRET: relaticle-dev-secret
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-reverb"]
+      start_period: 10s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_DB_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: relaticle
+      POSTGRES_USER: relaticle
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - relaticle-dev-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relaticle -d relaticle"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${FORWARD_REDIS_PORT:-6380}:6379"
+    volumes:
+      - relaticle-dev-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_MAILPIT_PORT:-1026}:1025"
+      - "${FORWARD_MAILPIT_DASHBOARD_PORT:-8026}:8025"
+
 volumes:
-    sail-pgsql:
-        driver: local
-    sail-redis:
-        driver: local
-    sail-meilisearch:
-        driver: local
+  relaticle-dev-postgres:
+  relaticle-dev-redis:
