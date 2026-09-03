@@ -3,17 +3,17 @@ status: testing
 phase: 01-ollama-cloud-provider-integration
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md]
 started: 2026-09-03T12:19:19Z
-updated: 2026-09-03T14:01:27Z
+updated: 2026-09-03T14:03:30Z
 ---
 
 ## Current Test
 
-number: 5
-name: Write guard stays on the deliberate fallback
+number: 6
+name: Fresh-install catalog seeding
 expected: |
-  The write-guard branch for `ollama_cloud` (and self-hosted `ollama`) stays on the
-  deliberate prompt-level fallback, verified live against the Ollama Cloud chat endpoint
-  and pinned by assertions on both call-site keys.
+  Both `gpt-oss:20b` and `gpt-oss:120b` are seeded in the fresh-install catalog,
+  unmetered, out of the Auto chain, unmeasured until probed, and the model picker
+  shows a cloud icon for the provider.
 awaiting: user response
 
 ## Tests
@@ -66,7 +66,7 @@ result: pass
 
 ### 5. Write guard stays on the deliberate fallback
 expected: The write-guard branch for `ollama_cloud` (and self-hosted `ollama`) stays on the deliberate prompt-level fallback, verified live against the Ollama Cloud chat endpoint and pinned by assertions on both call-site keys.
-result: [pending]
+result: pass
 
 ### 6. Fresh-install catalog seeding
 expected: Both `gpt-oss:20b` and `gpt-oss:120b` are seeded in the fresh-install catalog, unmetered, out of the Auto chain, unmeasured until probed, and the model picker shows a cloud icon for the provider.
@@ -92,9 +92,9 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 4
+passed: 5
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 
