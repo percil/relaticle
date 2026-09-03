@@ -49,12 +49,14 @@ MCP, or chat.
 - ✓ Auth: Fortify + Jetstream (teams, 2FA, passkeys) + Passport (OAuth) + Socialite (Google, Microsoft Entra ID) — existing
 - ✓ Realtime chat streaming via Reverb/Horizon (Redis queue) — existing
 - ✓ Public documentation pages (`packages/Documentation`) and demo/onboarding data seeding (`packages/OnboardSeed`) — existing
+- ✓ Ollama Cloud added as a provider in `config/ai.php`, keyed by `OLLAMA_CLOUD_API_KEY` — Phase 1
+- ✓ Ollama Cloud models managed via the sysadmin Model Catalog page (plan-gated, priced, `ModelProbe`-verified), like Anthropic/OpenAI — Phase 1
+- ✓ Sysadmin Model Catalog's model picker fetches Ollama Cloud's live model list instead of relying on free text — Phase 1
+- ✓ Reverb runs as a real service in both `compose.yml` (production) and `compose.dev.yml` (dev/test), with browser credentials injected at request time instead of Vite build time, so one published image works for every self-hoster's own domain and key — Phase 2
 
 ### Active
 
-- [ ] Ollama Cloud added as a provider in `config/ai.php`, keyed by `OLLAMA_CLOUD_API_KEY`
-- [ ] Ollama Cloud models managed via the sysadmin Model Catalog page (plan-gated, priced, `ModelProbe`-verified), like Anthropic/OpenAI
-- [ ] Sysadmin Model Catalog's model picker fetches Ollama Cloud's live model list instead of relying on free text
+(Nothing active — milestone v1.0 scope shipped in Phases 1-2)
 
 ### Out of Scope
 
@@ -107,6 +109,8 @@ MCP, or chat.
 |----------|-----------|---------|
 | Skip REQUIREMENTS.md and ROADMAP.md during this init | No specific next feature chosen yet; user wants scope defined per-milestone via `/gsd-new-milestone` instead of guessing scope now | — Pending |
 | Workflow config: YOLO mode, coarse granularity, parallel execution, adaptive models, research/plan-check/verifier/drift-guard all on | User chose "Configure fresh" and picked these explicitly over saved global defaults | — Pending |
+| Reverb dev stack (`compose.dev.yml`) runs side-by-side with pre-existing Sail containers under its own compose project and non-conflicting ports, rather than a cutover | Preserves the existing native Herd/`composer test:pest` loop and its Postgres 18 data untouched; D-04 needs Postgres 17 for the new stack, which cannot read a Postgres 18 volume | Shipped — Phase 2 |
+| Reverb browser credentials render server-side at request time (Filament panel render hook) instead of being baked in at Vite build time | One published `ghcr.io/relaticle/relaticle` image must work for every self-hoster's own domain and self-generated key; a build-time value can't vary per deployment | Shipped — Phase 2 |
 
 ## Evolution
 
@@ -126,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after starting milestone v1.0 (Ollama Cloud Provider)*
+*Last updated: 2026-09-03 after Phase 2 (Docker Compose Orchestration) — milestone v1.0 complete*
