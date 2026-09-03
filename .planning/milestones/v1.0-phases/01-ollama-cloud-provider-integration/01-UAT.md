@@ -1,19 +1,22 @@
 ---
-status: testing
+status: partial
 phase: 01-ollama-cloud-provider-integration
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md]
 started: 2026-09-03T12:19:19Z
-updated: 2026-09-03T14:03:30Z
+updated: 2026-09-03T14:11:02Z
 ---
 
 ## Current Test
 
-number: 6
-name: Fresh-install catalog seeding
+number: 7
+name: AI service health dashboard reports Ollama Cloud status
 expected: |
-  Both `gpt-oss:20b` and `gpt-oss:120b` are seeded in the fresh-install catalog,
-  unmetered, out of the Auto chain, unmeasured until probed, and the model picker
-  shows a cloud icon for the provider.
+  The AI service health dashboard reports Ollama Cloud's true status once a model is
+  servable, with no false failure from an unhandled provider case.
+
+  No browsable dashboard page was found (same gap the original phase 1 execution
+  flagged). Alternative: run `php artisan health:check` inside the app container —
+  it should show a "Chat Provider: Ollama Cloud" line reporting Ok.
 awaiting: user response
 
 ## Tests
@@ -70,7 +73,31 @@ result: pass
 
 ### 6. Fresh-install catalog seeding
 expected: Both `gpt-oss:20b` and `gpt-oss:120b` are seeded in the fresh-install catalog, unmetered, out of the Auto chain, unmeasured until probed, and the model picker shows a cloud icon for the provider.
+result: pass
+
+### 7. AI service health dashboard reports Ollama Cloud status
+expected: The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case.
 result: [pending]
+notes: |
+  Paused mid-investigation (session context budget). No browsable dashboard page found
+  (same gap phase 1's original execution flagged). Tried `php artisan health:check`
+  inside the dev-stack app container with HEALTH_CHECKS_ENABLED=true: ran ("Running
+  checks... All done!") but stored zero results via
+  Spatie\Health\ResultStores\ResultStore::latestResults(). Did not get far enough to
+  determine if this is a real gap or a config/enablement issue specific to this
+  container. Resume by checking config/health.php's enable gate and whether
+  HEALTH_CHECKS_ENABLED is the correct env var name, or whether `health:check` needs
+  a different invocation to persist results.
+
+## Current Test
+
+number: 7
+name: AI service health dashboard reports Ollama Cloud status
+expected: |
+  The AI service health dashboard reports Ollama Cloud's true status once a model is
+  servable, with no false failure from an unhandled provider case. See notes on test 7
+  above for where investigation left off.
+awaiting: user response
 
 ### 7. AI service health dashboard reports Ollama Cloud status
 expected: The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case.
@@ -92,9 +119,9 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 5
+passed: 6
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 blocked: 0
 
