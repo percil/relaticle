@@ -3,17 +3,16 @@ status: testing
 phase: 01-ollama-cloud-provider-integration
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md]
 started: 2026-09-03T12:19:19Z
-updated: 2026-09-03T13:34:10Z
+updated: 2026-09-03T13:47:34Z
 ---
 
 ## Current Test
 
-number: 3
-name: Live model listing fills the Model Select
+number: 4
+name: Health check probes the correct URL
 expected: |
-  The Model Select for `ollama_cloud` fills from Ollama's live `/v1/models` listing; tags
-  stay byte-intact, the list is cached once per successful fetch, and an empty listing
-  stays silent rather than flagging a wrong model.
+  `ChatProviderCheck` can probe `ollama_cloud` at `https://ollama.com/v1/models/{model}`
+  instead of failing on an unhandled provider case.
 awaiting: user response
 
 ## Tests
@@ -58,7 +57,7 @@ notes: |
 
 ### 3. Live model listing fills the Model Select
 expected: The Model Select for `ollama_cloud` fills from Ollama's live `/v1/models` listing; tags stay byte-intact, the list is cached once per successful fetch, and an empty listing stays silent rather than flagging a wrong model.
-result: [pending]
+result: pass
 
 ### 4. Health check probes the correct URL
 expected: `ChatProviderCheck` can probe `ollama_cloud` at `https://ollama.com/v1/models/{model}` instead of failing on an unhandled provider case.
@@ -92,9 +91,9 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 2
+passed: 3
 issues: 0
-pending: 6
+pending: 5
 skipped: 0
 blocked: 0
 
