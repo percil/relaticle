@@ -22,7 +22,7 @@ chat turn on production-shaped infrastructure.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Ollama Cloud Provider Integration** - Ollama Cloud configured, catalog-managed with live model listing, health-checked, and proven on a real chat turn
+- [x] **Phase 1: Ollama Cloud Provider Integration** - Ollama Cloud configured, catalog-managed with live model listing, health-checked, and proven on a real chat turn (completed 2026-09-03)
 
 ## Phase Details
 
@@ -66,7 +66,7 @@ Phases execute in numeric order: 1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Ollama Cloud Provider Integration | 4/4 | In Progress|  |
+| 1. Ollama Cloud Provider Integration | 4/4 | Complete    | 2026-09-03 |
 
 ## Notes
 

@@ -1,96 +1,25 @@
 ---
 phase: 01-ollama-cloud-provider-integration
-verified: 2026-09-02T20:20:45Z
-status: gaps_found
-score: 3/5 must-haves verified
+verified: 2026-09-03T09:45:00Z
+status: passed
+score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case (success criterion 4, OLLAMA-05)"
-    status: failed
-    reason: >
-      Reproduced live: with HEALTH_CHECKS_ENABLED=true and both Ollama Cloud rows saved,
-      verified, and probed (capabilities.supports_tools=true, verified_at set, confirmed via
-      `php artisan config:show chat.models`), `php artisan health:check` never lists a "Chat
-      provider: ollama_cloud" check at all -- not a false pass, not a false failure, simply
-      absent. Root cause: `bootstrap/providers.php` boots `HealthServiceProvider` (index 5)
-      before `ChatServiceProvider` (index 10). `HealthServiceProvider::boot()` calls
-      `Health::checks([... ...ChatProviderCheck::forConfiguredProviders()])` immediately, which
-      reads `config('chat.models')` at that instant -- still the fresh-install seed from
-      `packages/Chat/config/chat.php`, whose two `ollama_cloud` rows carry `capabilities: null`
-      by design (D-04/plan 01 task 3). `CatalogEntry::isServable()` requires a non-null
-      measurement, so both rows are filtered out of `reachableModels()` and zero ollama_cloud
-      checks are registered. `ChatServiceProvider::boot()` (which overlays the live,
-      settings-backed catalog with real capabilities onto `config('chat.models')`, per its own
-      first line) does not run until after `Health::checks()` has already frozen the list.
-      This is deterministic on every request/process, not a flake: pre-existing providers
-      (Anthropic, OpenAI) are unaffected only because their `chat.php` seed rows already ship
-      pre-filled `capabilities`, so they pass `isServable()` from the static seed alone --
-      Ollama Cloud is the first provider whose servability depends entirely on the live overlay,
-      which is exactly what plan 01 task 3 intentionally designed (seed capabilities null,
-      measured later by ModelProbe). Plan 02's SUMMARY independently flagged being unable to
-      locate any working health surface (404 on /health and /sysadmin/health) but did not
-      diagnose the root cause; this verification pass reproduced it directly via
-      `php artisan health:check` and traced it to the boot-order interaction above.
-    artifacts:
-      - path: "app/Providers/HealthServiceProvider.php"
-        issue: "Line 88 calls ChatProviderCheck::forConfiguredProviders() during boot(), before ChatServiceProvider::boot() (registered later in bootstrap/providers.php) overlays the live chat.models settings catalog. The check list is frozen with the seed-only, capabilities:null state for any provider whose seed ships unmeasured (Ollama Cloud is the first such provider)."
-      - path: "app/Health/ChatProviderCheck.php"
-        issue: "reachableModels() itself is correct and covered by tests, but it is only ever invoked at the wrong point in the boot cycle for a provider seeded with null capabilities."
-      - path: "bootstrap/providers.php"
-        issue: "HealthServiceProvider (index 5) is listed before ChatServiceProvider (index 10); this ordering is what causes the stale-config read."
-    missing:
-      - "A fix in either HealthServiceProvider (defer check registration past the settings overlay, e.g. resolve checks lazily or move ChatServiceProvider's settings overlay to register() instead of the first line of boot()) or bootstrap/providers.php (reorder ChatServiceProvider before HealthServiceProvider) so ChatProviderCheck::forConfiguredProviders() sees the live, settings-backed catalog rather than the fresh-install seed."
-      - "A regression test asserting Health::registeredChecks() includes a servable-only-via-live-settings provider after a full application boot (not a hand-constructed HealthServiceProvider instance), so this class of ordering bug cannot silently return."
-human_verification:
-  - test: >
-      Decide whether success criterion 5 / OLLAMA-06 (a user completes a real chat turn on a
-      verified Ollama Cloud model: streaming, tool calls, proposal approve/reject) is acceptable
-      to ship given the three defects 01-03-SUMMARY.md recorded from its own live browser
-      walkthrough on gpt-oss:20b against real Horizon/Redis/Reverb.
-    expected: >
-      A human triage decision on: (1) Defect 2 -- after approving a single-write proposal, the
-      record IS created, but no success message is ever shown and the automatic
-      TurnContinuationService follow-up turn fails with HTTP 401 two seconds later (refunded);
-      the user is left with only a collapsed "Approved" card and no explanation. The plan's own
-      Task 2 acceptance criteria required "the success message describes what was really done"
-      and "the turn continues on its own... rather than requiring the user to type again" --
-      neither held. (2) Defect 1 and Defect 3 -- prose-requested descriptive fields (a due date,
-      a note body) are silently dropped by gpt-oss:20b while structural fields (title, assignee)
-      are captured correctly, on both a single-write and a chained two-write proposal. (3)
-      Defect 4 -- the account's concurrency-rejection error ("unknown_error", a bare
-      RuntimeException) is confirmed NOT classified as retryable by
-      ProcessChatMessage::isRateLimited()/isTransient() (independently re-verified in this
-      pass: "unknown_error" is absent from ProviderStreamError::RETRYABLE_TYPES), and this same
-      unclassified error fired once on a single non-concurrent turn during the walkthrough
-      (custom-field step), suggesting it is not purely a concurrency artifact. The core loop
-      itself (streaming confirmed via growing message length, single- and two-step proposal
-      cards rendering correctly, reject cascading cleanly) DID work. The question for the human
-      is whether "approve/reject... resolve correctly" is satisfied given Defect 2's silent
-      post-approval failure, or whether this should block phase completion pending a fix.
-    why_human: >
-      This is a product/severity judgment call the project's own CLAUDE.md rules assign to a
-      human: chat defects found in a real transcript are to be enumerated and tracked, not
-      silently fixed or silently accepted inline. Defect 2 in particular is a pre-existing,
-      general chat-system bug (per the SUMMARY, it affects any provider that hits it, not
-      Ollama-Cloud-specific plumbing), so whether it blocks THIS phase's completion versus
-      being tracked as an independent follow-up issue is a scope decision this verifier should
-      not make unilaterally.
-    resolution: >
-      User decided (2026-09-03): does not block Phase 01 sign-off. Confirmed as a pre-existing,
-      general chat-system bug rather than Ollama-Cloud-specific. Tracked separately at
-      .planning/todos/pending/2026-09-03-chat-post-approval-defects-no-success-message-broken-turn-co.md.
-      Criterion 5 / OLLAMA-06 is accepted as substantively met: the core loop (streaming, single-
-      and two-step proposal cards, clean reject-cascade) is confirmed working against real
-      Horizon/Redis/Reverb on a verified Ollama Cloud model.
+re_verification:
+  previous_status: gaps_found
+  previous_score: 3/5
+  gaps_closed:
+    - "The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case (success criterion 4, OLLAMA-05)"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 01: Ollama Cloud Provider Integration Verification Report
 
 **Phase Goal:** Operators can run Relaticle's AI chat on Ollama Cloud models, managed through the sysadmin Model Catalog exactly like any other cloud provider
-**Verified:** 2026-09-02T20:20:45Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-09-03T09:45:00Z
+**Status:** passed
+**Re-verification:** Yes — after gap closure (plan 01-04)
 
 ## Goal Achievement
 
@@ -98,87 +27,86 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | With OLLAMA_CLOUD_API_KEY and base URL set, "Ollama Cloud" is selectable in the sysadmin catalog and the self-hosted `ollama` entry is unchanged/free/unmanaged | VERIFIED | `config/ai.php:104-114` -- `ollama` block byte-identical to pre-phase shape, `ollama_cloud` is a new, separate block (own key/url env vars). `ManageAiSettings::providerOptions()` filters on `filled(key)` and `providerLabel()` falls back to `str('ollama_cloud')->headline()` = "Ollama Cloud" since it's not a `Lab` case. 01-02-SUMMARY.md recorded a live browser confirmation that Ollama Cloud appears in the provider Select. |
-| 2 | Choosing Ollama Cloud populates the model picker from Ollama's live model list, real `-cloud`-suffixed... i.e. real published tags, no free-text | VERIFIED | `ProviderModelCatalog.php:86-87` issues `GET {url}/v1/models` with a bearer token; `modelOptions()` in `ManageAiSettings.php` builds the Select purely from that response's keys, no free-text path exists. 01-02-SUMMARY.md recorded a live combobox returning 19 real tags including `gpt-oss:20b`/`gpt-oss:120b`, both selected from the list (never typed). Tag round-trip fidelity (colon intact, no suffix stripped) is covered by a dedicated test. |
-| 3 | An operator can save an Ollama Cloud model with pricing, plan gating, credit multiplier, and it earns the Verified badge once ModelProbe passes against a real request | VERIFIED | Independently re-confirmed in this pass via `php artisan config:show chat.models`: both `gpt-oss:20b` (min_plan free, credit_multiplier 1) and `gpt-oss:120b` (min_plan pro, credit_multiplier 1.5) carry `capabilities.supports_tools: true`, `capabilities.write_guard: prompt`, and a real `verified_at` timestamp (2026-09-02T17:32:37+02:00 / :38+02:00) -- proof this came from a genuine `ManageAiSettings::save() -> verified() -> ModelProbe` pass, not a hand-edited row. |
-| 4 | The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case | **FAILED** | Reproduced live in this pass: `HEALTH_CHECKS_ENABLED=true php artisan health:check` never lists a "Chat provider: ollama_cloud" check, even with both rows verified and servable. Root cause traced to a `HealthServiceProvider`/`ChatServiceProvider` boot-order bug (see Gaps below). This is not "a false failure from an unhandled provider case" -- it is worse: the check silently never exists. |
-| 5 | A user completes a real chat turn on a verified Ollama Cloud model: streaming, tool calls, and proposal approve/reject, against Horizon, Redis, Reverb | **UNCERTAIN — human decision requested** | 01-03-SUMMARY.md records a real, screenshot-evidenced browser walkthrough on `gpt-oss:20b` against a genuinely repaired Horizon/Redis/Reverb stack. Streaming, single- and two-step proposal cards, and clean reject-cascade are all confirmed working. But the same walkthrough found and enumerated 3 defects, most materially Defect 2: approving a proposal creates the record but shows no success message, and the automatic turn-continuation fails with an unexplained HTTP 401. See Human Verification below. |
+| 1 | With `OLLAMA_CLOUD_API_KEY` and base URL set, "Ollama Cloud" is selectable in the sysadmin catalog and the self-hosted `ollama` entry is unchanged/free/unmanaged | ✓ VERIFIED (regression check) | `git diff --name-only be616120 HEAD -- app/ packages/ config/ tests/ .env.example` lists only `app/Providers/HealthServiceProvider.php` and `tests/Feature/HealthChecks/HealthServiceProviderTest.php` — `config/ai.php` is byte-identical to the state the prior verification pass confirmed. |
+| 2 | Choosing Ollama Cloud populates the model picker from Ollama's live model list, real published tags, no free-text | ✓ VERIFIED (regression check) | `packages/Chat/src/Services/ProviderModelCatalog.php` untouched since prior verification (same `git diff` above); prior pass's live-browser confirmation of 19 real tags stands unregressed. |
+| 3 | An operator can save an Ollama Cloud model with pricing, plan gating, credit multiplier, and it earns the Verified badge once ModelProbe passes against a real request | ✓ VERIFIED (independently re-confirmed live) | Re-ran `php artisan config:show chat.models` myself in this pass: both `gpt-oss:20b` (`min_plan: free`, `credit_multiplier: 1`) and `gpt-oss:120b` (`min_plan: pro`, `credit_multiplier: 1.5`) carry `capabilities.supports_tools: true`, `capabilities.write_guard: prompt`, and real `verified_at` timestamps (`2026-09-02T17:32:37+02:00` / `:38+02:00`) — unchanged since the prior pass, proving no drift. |
+| 4 | The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case (OLLAMA-05) | ✓ VERIFIED — gap closed | Read `app/Providers/HealthServiceProvider.php` directly: `Health::checks([...])` is now lexically inside a closure passed to `$this->app->booted(...)`, with the `isEnabled()` early-return guard preceding it and all 17 pre-existing checks plus the `ChatProviderCheck::forConfiguredProviders()` spread unchanged. Independently ran `COLUMNS=200 HEALTH_CHECKS_ENABLED=true php artisan health:check --no-ansi` myself: emits `Running check: Chat Provider: Ollama Cloud..` / `Ok: gpt-oss:20b` — the check registers and reports a true "Ok" status, matching the SUMMARY's claim exactly. Independently ran the regression test (`vendor/bin/pest tests/Feature/HealthChecks/HealthServiceProviderTest.php`): 3/3 pass. Independently reproduced the failing direction myself (`git checkout 701b847f~1 -- app/Providers/HealthServiceProvider.php`, re-ran the suite: 2/3 pass, the new case fails with `Failed asserting that a traversable contains 'Chat provider: ollama_cloud'`; restored the fix, re-ran: 3/3 pass; `git status --short` on the file was empty afterward) — this is not a vacuous test. |
+| 5 | A user completes a real chat turn on a verified Ollama Cloud model: streaming, tool calls, and proposal approve/reject, against Horizon, Redis, Reverb (OLLAMA-06) | ✓ VERIFIED (human-resolved 2026-09-03, carried forward) | Prior verification routed this to human judgment; the human decision recorded in the prior VERIFICATION.md ("does not block Phase 01 sign-off... accepted as substantively met") still holds. Confirmed the tracking artifact still exists: `.planning/todos/pending/2026-09-03-chat-post-approval-defects-no-success-message-broken-turn-co.md` documents all 3 (now 4-numbered) defects with file references, matching the resolution text verbatim. No new evidence contradicts this resolution; it is not re-opened by this pass. |
 
-**Score:** 3/5 truths cleanly verified, 1 failed (blocker), 1 routed to human judgment.
+**Score:** 5/5 truths verified (4 confirmed directly in this pass — 1 newly closed, 1 freshly re-confirmed live, 2 by unregressed-file check — plus 1 carried forward under a standing human resolution).
+
+### Deferred Items
+
+None.
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `config/ai.php` | `ollama_cloud` provider block, `ollama` untouched | ✓ VERIFIED | Confirmed by direct read; `git diff` claim from 01-01-SUMMARY (`-c 0` removed lines) matches current file state. |
-| `.env.example` | `OLLAMA_CLOUD_API_KEY`/`OLLAMA_CLOUD_BASE_URL` documented | ✓ VERIFIED | Lines 145-146. |
-| `packages/Chat/src/Services/ProviderModelCatalog.php` | `ollama_cloud` listing arm | ✓ VERIFIED | Line 86-87, shaped like the `openai` arm. |
-| `app/Health/ChatProviderCheck.php` | `ollama_cloud` health arm | ✓ VERIFIED (class-level), ⚠️ effectively unreachable in production (see Gaps) | Lines 104-105; correct URL construction, covered by tests, but the class is never invoked for `ollama_cloud` in a real app boot. |
-| `packages/Chat/src/Agents/CrmAssistant.php` | Documented write-guard fallback | ✓ VERIFIED | `providerOptions()` default arm; comment at lines 655-663 documents the reasoning; pinned by an equality test on both `Lab::Ollama` and `'ollama_cloud'`. |
-| `packages/Chat/config/chat.php` | Two D-06 seed rows | ✓ VERIFIED | Lines 223-224, `gpt-oss:20b`/`gpt-oss:120b`, `input/output_per_mtok: null`, `auto: false`. |
-| `packages/Chat/resources/views/livewire/chat/partials/_model-state.blade.php` | `ollama_cloud` picker icon | ✓ VERIFIED | Line 24, `ri-cloud-line`. |
-| `.planning/phases/01-ollama-cloud-provider-integration/01-COVERAGE.md` | API coverage matrix | ✓ VERIFIED | Present, 12 capabilities enumerated, 3 INTEGRATE / 9 OPT-OUT each with a reason. |
+| `app/Providers/HealthServiceProvider.php` | `Health::checks()` registration deferred past the settings overlay | ✓ VERIFIED | Read directly; `Health::checks([...])` is inside `$this->app->booted(fn (): void => ...)`; docblock explains the deferral, no em-dash present. |
+| `tests/Feature/HealthChecks/HealthServiceProviderTest.php` | Full-application-boot regression test for the boot-order invariant | ✓ VERIFIED | Read directly; 3 `it(` cases, the new one boots a real second `Application` via `require base_path('bootstrap/app.php')` + `Kernel::bootstrap()`, asserts `Health::registeredChecks()` contains `Chat provider: ollama_cloud`, and restores global state in a `finally` block. Independently run: 3/3 pass; independently reproduced failing against the pre-fix provider. |
+| `config/ai.php`, `.env.example`, `ProviderModelCatalog.php`, `ChatProviderCheck.php`, `CrmAssistant.php`, `chat.php` seed rows, `_model-state.blade.php` picker icon | Unchanged since prior VERIFIED pass | ✓ VERIFIED (regression) | `git diff --name-only be616120 HEAD` confirms none of these files changed since the prior verification pass; the prior pass's per-artifact findings for these files stand. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `config('ai.providers.ollama_cloud.url')` | 3 consumers (laravel/ai gateway, `ProviderModelCatalog`, `ChatProviderCheck`) | bare host + per-consumer path append | ✓ WIRED | All three read the same bare-host value and append their own path (`api/chat` relative, `/v1/models`, `/v1` then `models/{id}`); no double `/v1` observed. |
-| `ManageAiSettings::save()` | `ModelProbe` -> live `chat.models` settings row | Filament panel save action | ✓ WIRED | Confirmed via `config:show chat.models` showing real, non-null capabilities and `verified_at` for both rows. |
-| `HealthServiceProvider::boot()` | `ChatProviderCheck::forConfiguredProviders()` -> `config('chat.models')` | provider boot order in `bootstrap/providers.php` | ✗ **NOT WIRED (broken in production)** | `HealthServiceProvider` (index 5) boots and freezes the check list before `ChatServiceProvider` (index 10) overlays the live settings catalog onto `config('chat.models')`. Reproduced live: `php artisan health:check` never lists a check for `ollama_cloud` despite both rows being servable. |
-| Chat model picker `allowedModels` | `min_plan` on each catalog row | Alpine component state, live-read | ✓ WIRED | 01-02-SUMMARY.md recorded live Alpine state for a free-plan workspace (`["auto","gpt-oss:20b"]`) and a pro-plan workspace (`["auto","gpt-oss:20b","gpt-oss:120b"]`). |
+| `HealthServiceProvider::boot()` | `ChatProviderCheck::forConfiguredProviders()` -> `config('chat.models')` | `$this->app->booted(...)` closure | ✓ WIRED | Read directly and independently confirmed live via `health:check` output and the passing regression test — check registration now reads the post-overlay catalog regardless of `bootstrap/providers.php` order. |
+| `ChatSettings::toConfig()` | `config('chat.models')` -> `CatalogEntry::isServable()` -> `Health::registeredChecks()` | `ChatServiceProvider::boot()` -> `applyStoredSettings()` | ✓ WIRED | Confirmed via `config:show chat.models` showing the live, non-null, verified catalog rows and via the regression test's second-application overlay reaching `registeredChecks()`. |
+| `bootstrap/app.php` `withSchedule()` | `RunHealthChecksCommand` `everyMinute()` -> `app(Health::class)->registeredChecks()` | schedule guarded by `config('app.health_checks_enabled')` | ✓ WIRED | Read `bootstrap/app.php` lines 182-186 directly: schedule registration is guarded identically to `HealthServiceProvider::isEnabled()`, and runs after `Kernel::bootstrap()` completes, so it observes the deferred check list correctly. |
+| `config('ai.providers.ollama_cloud.url')` | 3 consumers (laravel/ai gateway, `ProviderModelCatalog`, `ChatProviderCheck`) | bare host + per-consumer path append | ✓ WIRED (unregressed) | File unchanged since prior pass; prior finding stands. |
+| `ManageAiSettings::save()` | `ModelProbe` -> live `chat.models` settings row | Filament panel save action | ✓ WIRED (re-confirmed live) | `config:show chat.models` still shows real, non-null capabilities and `verified_at` for both rows. |
 
 ### Data-Flow Trace
 
 | Artifact | Data variable | Source | Produces real data | Status |
 |----------|---------------|--------|---------------------|--------|
-| Sysadmin model Select (Ollama Cloud) | `modelOptions()` | live `GET /v1/models` via `ProviderModelCatalog` | Yes (19 real tags observed) | ✓ FLOWING |
-| Catalog row `capabilities`/`write_guard` | `ManageAiSettings::verified()` | real `ModelProbe` request against `https://ollama.com/api/chat` | Yes (`supports_tools: true`, `write_guard: prompt`, real timestamp) | ✓ FLOWING |
-| `ChatProviderCheck` result for `ollama_cloud` | `Health::checks()` registered list | `config('chat.models')` read at `HealthServiceProvider::boot()` time | **No** — reads the pre-overlay seed, which has `capabilities: null` | ✗ DISCONNECTED |
+| `ChatProviderCheck` result for `ollama_cloud` | `Health::checks()` registered list | `config('chat.models')` read inside `$this->app->booted()`, after `ChatServiceProvider::boot()` has overlaid the live settings | Yes — confirmed live: `Ok: gpt-oss:20b` | ✓ FLOWING (was DISCONNECTED before this plan) |
+| Sysadmin model Select (Ollama Cloud) | `modelOptions()` | live `GET /v1/models` via `ProviderModelCatalog` | Yes (unregressed) | ✓ FLOWING |
+| Catalog row `capabilities`/`write_guard` | `ManageAiSettings::verified()` | real `ModelProbe` request | Yes (re-confirmed live) | ✓ FLOWING |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Config/listing/health test suite passes | `DB_USERNAME=root DB_PASSWORD=root vendor/bin/pest --no-tia tests/Feature/HealthChecks/ChatProviderCheckTest.php tests/Feature/SystemAdmin/AiModelCatalogListingTest.php tests/Feature/Chat/SequentialWriteEnforcementTest.php` | `34 tests, 34 passed, 67 assertions` | ✓ PASS |
-| Full Chat/SystemAdmin/HealthChecks feature suite passes | `vendor/bin/pest --no-tia tests/Feature/Chat/ tests/Feature/SystemAdmin/ tests/Feature/HealthChecks/` | `1413 tests, 1413 passed, 10181 assertions` | ✓ PASS |
-| Architecture/convention suite passes (em-dash, module boundaries) | `vendor/bin/pest --no-tia tests/Arch/` | `69 tests, 69 passed, 173 assertions` | ✓ PASS |
-| Live catalog reflects a genuine ModelProbe pass | `php artisan config:show chat.models` | Both `ollama_cloud` rows show `capabilities.supports_tools: true`, `write_guard: prompt`, real `verified_at` | ✓ PASS |
-| Health dashboard reports `ollama_cloud` | `HEALTH_CHECKS_ENABLED=true php artisan health:check` | No "Chat provider: ollama_cloud" line in 16 registered/run checks | ✗ FAIL (see Gaps) |
-| `isRateLimited()`/`isTransient()` classify Ollama Cloud's concurrency rejection | `grep RETRYABLE_TYPES packages/Chat/src/Support/ProviderStreamError.php` | `unknown_error` absent from `RETRYABLE_TYPES` | Confirmed (independently re-verified plan 03's finding); treated as accepted follow-up, not a phase blocker — see Notes |
+| Health dashboard reports `ollama_cloud` (independently re-run) | `COLUMNS=200 HEALTH_CHECKS_ENABLED=true php artisan health:check --no-ansi` | `Running check: Chat Provider: Ollama Cloud..` / `Ok: gpt-oss:20b` | ✓ PASS (was FAIL before this plan) |
+| Regression test passes (independently re-run) | `vendor/bin/pest --no-tia tests/Feature/HealthChecks/HealthServiceProviderTest.php` | `3 tests, 3 passed, 6 assertions` | ✓ PASS |
+| Regression test fails first, before the fix (independently reproduced) | `git checkout 701b847f~1 -- app/Providers/HealthServiceProvider.php && vendor/bin/pest ...` | `2 passed, 1 failed` — new case fails on `Chat provider: ollama_cloud` assertion; fix restored afterward with clean `git status` | ✓ PASS (confirms non-vacuous test) |
+| Architecture/convention suite (independently re-run) | `vendor/bin/pest --no-tia tests/Arch/` | `69 tests, 69 passed, 173 assertions` | ✓ PASS (at baseline) |
+| Full Chat/SystemAdmin/HealthChecks feature suite (independently re-run) | `vendor/bin/pest --no-tia tests/Feature/Chat/ tests/Feature/SystemAdmin/ tests/Feature/HealthChecks/` | `1414 tests, 1414 passed, 10183 assertions` | ✓ PASS (baseline 1413 + 1 new case) |
+| Live catalog reflects a genuine ModelProbe pass (independently re-run) | `php artisan config:show chat.models` | Both `ollama_cloud` rows show `capabilities.supports_tools: true`, real `verified_at` | ✓ PASS |
+| No debt markers in the two changed files | `grep -n -E "TBD\|FIXME\|XXX\|TODO\|HACK\|PLACEHOLDER" app/Providers/HealthServiceProvider.php tests/Feature/HealthChecks/HealthServiceProviderTest.php` | no matches | ✓ PASS |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|-------------|--------------|--------|----------|
-| OLLAMA-01 | 01-01 | Ollama Cloud configured via `.env`, distinct from self-hosted | ✓ SATISFIED | `config/ai.php`, `.env.example`, tests |
-| OLLAMA-02 | 01-01 | Selectable in sysadmin catalog once key set | ✓ SATISFIED | `providerOptions()`/`providerLabel()`, live-confirmed |
-| OLLAMA-03 | 01-01 | Model picker from live listing, no free text | ✓ SATISFIED | `ProviderModelCatalog::fetch()` arm, live-confirmed (19 tags) |
-| OLLAMA-04 | 01-02 | Add/price/plan-gate/verify like Anthropic/OpenAI | ✓ SATISFIED | Live `config:show chat.models`, `chat:models` CLI, plan-gate boundary confirmed |
-| OLLAMA-05 | 01-01, 01-02 | Health dashboard correctly reports status, no false failure from unhandled case | ✗ **BLOCKED** | Reproduced: check never registers for `ollama_cloud` due to provider boot order (see Gaps) |
-| OLLAMA-06 | 01-03 | Real chat turn succeeds on production-shaped infra | ? **NEEDS HUMAN** | Core loop demonstrated; 3 defects found and left for triage per project convention |
+| OLLAMA-01 | 01-01 | Ollama Cloud configured via `.env`, distinct from self-hosted | ✓ SATISFIED (unregressed) | Files unchanged since prior VERIFIED pass |
+| OLLAMA-02 | 01-01 | Selectable in sysadmin catalog once key set | ✓ SATISFIED (unregressed) | Files unchanged since prior VERIFIED pass |
+| OLLAMA-03 | 01-01 | Model picker from live listing, no free text | ✓ SATISFIED (unregressed) | Files unchanged since prior VERIFIED pass |
+| OLLAMA-04 | 01-02 | Add/price/plan-gate/verify like Anthropic/OpenAI | ✓ SATISFIED (re-confirmed live) | `config:show chat.models` |
+| OLLAMA-05 | 01-01, 01-02, 01-04 | Health dashboard correctly reports status, no false failure from unhandled case | ✓ SATISFIED — gap closed by 01-04 | Independently re-run `health:check`, regression test, failing-direction proof; REQUIREMENTS.md now marks it Complete |
+| OLLAMA-06 | 01-03 | Real chat turn succeeds on production-shaped infra | ✓ ACCEPTED (human-resolved, defects tracked separately) | 2026-09-03 human resolution in prior VERIFICATION.md; `.planning/todos/pending/2026-09-03-chat-post-approval-defects-no-success-message-broken-turn-co.md` exists and matches; REQUIREMENTS.md traceability table still shows "Pending" reflecting the tracked-but-not-blocking defects, which is consistent with the resolution, not a contradiction of it. |
 
-No orphaned requirements: every REQUIREMENTS.md v1 ID (OLLAMA-01 through 06) is claimed by exactly one of the three plans' `requirements:` frontmatter, matching REQUIREMENTS.md's own Traceability table (which itself already shows OLLAMA-05 and OLLAMA-06 as "Pending" — consistent with this verification's findings).
+No orphaned requirements: `grep -A3 "^requirements:"` across all 4 plans (`01-01`, `01-02`, `01-03`, `01-04`) collectively claims OLLAMA-01 through OLLAMA-06, matching REQUIREMENTS.md's own set exactly.
 
 ### Anti-Patterns Found
 
-None. Grepped all 7 source/config/view files this phase modified for `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER`/"not yet implemented"/empty-return stubs: no matches.
+None. Grepped both files changed by this gap-closure plan for `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER`: no matches. `git diff --name-only be616120 HEAD` confirms no other source file changed since the prior verification pass, so no new anti-pattern surface exists beyond what was already checked.
+
+Two pre-existing, non-blocking warnings from `01-REVIEW.md` remain unresolved but are outside this phase's roadmap success criteria (they concern `.env.example` documentation completeness and a base-URL convention edge case, not phase-goal-blocking defects): WR-01 (`.env.example`'s "models only need a configured provider" claim doesn't mention the manual probe step Ollama Cloud rows require) and WR-02 (inconsistent `/v1` suffix convention between `OPENAI_URL` and `OLLAMA_CLOUD_BASE_URL` could produce a silent double-`/v1` path if an operator copies the wrong convention). Both were already present before 01-04 and 01-04's scope explicitly excluded touching them. Not gaps against the roadmap success criteria; noted for visibility only.
 
 ### Human Verification Required
 
-### 1. Is OLLAMA-06's chat-turn UX acceptable to ship given the 3 defects found in its own verification walkthrough?
-
-**Test:** Review 01-03-SUMMARY.md's numbered defect list (dropped due-date field, HTTP 401 turn-continuation failure with no success message after approval, dropped note-body field on a chained write) and decide whether these block phase completion or should be tracked as independent follow-up issues.
-**Expected:** A human decision: either (a) accept the core loop (streaming/proposal/approve/reject mechanics) as sufficient evidence for OLLAMA-06 and file the 3 defects as separate follow-up issues, consistent with 01-03-SUMMARY's own recommendation, or (b) treat Defect 2 (silent post-approval failure) as blocking, since it directly contradicts the plan's own Task 2 acceptance criteria ("the success message describes what was really done" and "the turn continues on its own").
-**Why human:** CLAUDE.md explicitly assigns this triage judgment to a human rather than an agent; Defect 2 is also flagged by the executor as a pre-existing, general chat-system bug (not Ollama-Cloud-specific), which affects whether it belongs to this phase's scope at all.
+None. The one item requiring human judgment (success criterion 5 / OLLAMA-06's chat-turn UX defects) was already resolved by the user on 2026-09-03, and that resolution is confirmed still standing in this pass (see Truth 5 above and the Requirements Coverage table).
 
 ### Gaps Summary
 
-One blocking gap: the AI service health dashboard (success criterion 4 / OLLAMA-05) does not actually report Ollama Cloud's status in this codebase, in any configuration. This was reproduced directly (not inferred from SUMMARY claims) via `php artisan health:check` after independently confirming both catalog rows are genuinely servable. The root cause is a provider-boot-order interaction between `HealthServiceProvider` (freezes the check list early) and `ChatServiceProvider` (overlays the live catalog late) that was latent before this phase but only becomes an observable defect because Ollama Cloud's rows are deliberately seeded with `capabilities: null` (an otherwise-correct design choice from plan 01 task 3). Plan 02's own SUMMARY already flagged being unable to locate a working health surface but did not diagnose why; this is not a new problem introduced by drift since that SUMMARY, it is the same problem, now root-caused and confirmed unfixed.
+None. The single blocking gap from the prior verification pass — the AI service health dashboard never reporting Ollama Cloud (success criterion 4 / OLLAMA-05) — is closed. I independently reproduced every claim in 01-04-SUMMARY.md rather than trusting it: read the changed `HealthServiceProvider.php` directly and confirmed the `booted()` deferral; ran the live `health:check` CLI myself and observed the same `Ok: gpt-oss:20b` line the SUMMARY reported; ran the regression test myself (3/3 passing); and independently reproduced the failing-direction proof by checking the file out to its pre-fix commit, confirming the new test genuinely fails without the fix (not a vacuous assertion), then restoring the fix with a clean working tree. I also independently re-ran the full `tests/Arch/` (69/69) and `tests/Feature/Chat/+SystemAdmin/+HealthChecks/` (1414/1414) suites myself and confirmed no regression against the prior pass's baselines. `git diff --name-only` since before this plan confirms the change is scoped to exactly the two files the plan declared, with no drift elsewhere in the codebase since the prior verification.
 
-One item requires human judgment rather than automated pass/fail: whether the three defects 01-03's browser walkthrough found and deliberately left unfixed (per CLAUDE.md's "enumerate, don't fix inline" rule) are acceptable for phase sign-off or should block it.
+Phase 01 (Ollama Cloud Provider Integration) has no remaining blocking gaps and no open human-verification items. All 5 roadmap success criteria and all 6 requirement IDs (OLLAMA-01 through OLLAMA-06) are satisfied, with OLLAMA-06 accepted under a standing, already-recorded human resolution rather than newly re-litigated here.
 
 ---
 
-_Verified: 2026-09-02T20:20:45Z_
+_Verified: 2026-09-03T09:45:00Z_
 _Verifier: Claude (gsd-verifier)_
