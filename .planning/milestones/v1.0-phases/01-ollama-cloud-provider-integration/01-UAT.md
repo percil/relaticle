@@ -3,16 +3,17 @@ status: testing
 phase: 01-ollama-cloud-provider-integration
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md]
 started: 2026-09-03T12:19:19Z
-updated: 2026-09-03T13:47:34Z
+updated: 2026-09-03T14:01:27Z
 ---
 
 ## Current Test
 
-number: 4
-name: Health check probes the correct URL
+number: 5
+name: Write guard stays on the deliberate fallback
 expected: |
-  `ChatProviderCheck` can probe `ollama_cloud` at `https://ollama.com/v1/models/{model}`
-  instead of failing on an unhandled provider case.
+  The write-guard branch for `ollama_cloud` (and self-hosted `ollama`) stays on the
+  deliberate prompt-level fallback, verified live against the Ollama Cloud chat endpoint
+  and pinned by assertions on both call-site keys.
 awaiting: user response
 
 ## Tests
@@ -61,7 +62,7 @@ result: pass
 
 ### 4. Health check probes the correct URL
 expected: `ChatProviderCheck` can probe `ollama_cloud` at `https://ollama.com/v1/models/{model}` instead of failing on an unhandled provider case.
-result: [pending]
+result: pass
 
 ### 5. Write guard stays on the deliberate fallback
 expected: The write-guard branch for `ollama_cloud` (and self-hosted `ollama`) stays on the deliberate prompt-level fallback, verified live against the Ollama Cloud chat endpoint and pinned by assertions on both call-site keys.
@@ -91,9 +92,9 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 3
+passed: 4
 issues: 0
-pending: 5
+pending: 4
 skipped: 0
 blocked: 0
 
