@@ -46,7 +46,9 @@ services:
       # Independently configurable from the internal family above so a
       # reverse-proxied self-hoster can terminate TLS on the public socket.
       BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-reverb}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
       REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
       REVERB_HOST: ${REVERB_HOST:-localhost}
       REVERB_PORT: ${REVERB_PORT:-8080}
       REVERB_SCHEME: ${REVERB_SCHEME:-http}
@@ -99,6 +101,14 @@ services:
       BROADCAST_REVERB_HOST: reverb
       BROADCAST_REVERB_PORT: 8080
       BROADCAST_REVERB_SCHEME: http
+      # Chat streaming events implement ShouldBroadcastNow and are dispatched
+      # from queued jobs (ProcessChatMessage et al.), which run in THIS
+      # container. Without these, broadcasting.default resolves to "null"
+      # here and every chat broadcast silently no-ops.
+      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-reverb}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
       # Disable automations for worker container
       AUTORUN_ENABLED: "false"
     volumes:
@@ -143,6 +153,11 @@ services:
       BROADCAST_REVERB_HOST: reverb
       BROADCAST_REVERB_PORT: 8080
       BROADCAST_REVERB_SCHEME: http
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
       # Disable automations for scheduler container
       AUTORUN_ENABLED: "false"
     volumes:

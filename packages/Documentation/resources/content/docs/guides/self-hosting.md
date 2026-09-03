@@ -79,7 +79,7 @@ These must be set or the containers will refuse to start.
 | `DB_PASSWORD` | PostgreSQL password. Use a strong random value. |
 | `REVERB_APP_ID` | Reverb application identifier, used to namespace WebSocket connections. Generate with `openssl rand -hex 16`. Use a different value for every install. |
 | `REVERB_APP_KEY` | Reverb's public client key. Generate with `openssl rand -hex 16`. This value is sent to every browser and appears in page source by design, the same way a Pusher key is public. |
-| `REVERB_APP_SECRET` | Reverb's private secret, used to authenticate server-to-server broadcasts. Generate with `openssl rand -base64 32`. Unlike `REVERB_APP_KEY`, this value must never be exposed; keep it out of client code and public repositories. |
+| `REVERB_APP_SECRET` | Reverb's private secret, used to authenticate server-to-server broadcasts. Generate with `openssl rand -hex 16`. Unlike `REVERB_APP_KEY`, this value must never be exposed; keep it out of client code and public repositories. |
 
 ### Application
 
