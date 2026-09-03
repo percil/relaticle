@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case
   5. A user completes a real chat turn on a verified Ollama Cloud model — streaming, tool calls, and proposal approve/reject — against Horizon, Redis, and Reverb
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/4 plans executed
 Plans:
 **Wave 1**
 
@@ -51,7 +51,11 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Time a multi-tool-call turn, find the concurrency ceiling, and walk a real streaming propose-and-approve chat turn (wave 3)
+- [x] 01-03-PLAN.md — Time a multi-tool-call turn, find the concurrency ceiling, and walk a real streaming propose-and-approve chat turn (wave 3)
+
+**Wave 4** *(gap closure from 01-VERIFICATION.md)*
+
+- [ ] 01-04-PLAN.md — Defer chat provider health-check registration past the settings overlay so Ollama Cloud actually registers, and pin the boot-order invariant with a full-application-boot regression test (wave 4, OLLAMA-05)
 
 **Build order**: config entry → live model listing → health-check arm → first verified catalog row → real chat turn. The health-check arm (`ChatProviderCheck::probe()`) is load-bearing and must not be deferred past the first catalog row, or the dashboard breaks on first use.
 
@@ -62,7 +66,7 @@ Phases execute in numeric order: 1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Ollama Cloud Provider Integration | 2/3 | In Progress|  |
+| 1. Ollama Cloud Provider Integration | 3/4 | In Progress (gap closure) |  |
 
 ## Notes
 
