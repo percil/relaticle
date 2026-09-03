@@ -35,6 +35,15 @@ services:
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Relaticle}
+      # AI chat providers. Optional: a self-hoster may run the CRM without any
+      # chat provider configured. Each is a plain passthrough of the operator's
+      # own .env value; docker compose never injects a var that is not an
+      # explicit key here, no matter what is set in .env.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
       # Server-to-server broadcast push to the reverb container. The Docker
       # service name "reverb" is not a loopback host, so config/broadcasting.php
       # would otherwise attempt TLS against a plain-HTTP container and every
@@ -94,6 +103,14 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      # AI chat providers. Queued chat jobs (ProcessChatMessage et al.) run in
+      # THIS container, so it needs these directly, not just app. See the app
+      # service's comment for why each needs its own explicit entry here.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
       # Server-to-server broadcast push to the reverb container. The Docker
       # service name "reverb" is not a loopback host, so config/broadcasting.php
       # would otherwise attempt TLS against a plain-HTTP container and every
