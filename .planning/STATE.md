@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 02
 current_phase_name: Docker Compose Orchestration
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-09-03T09:42:52.535Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-09-03T09:48:40.188Z"
 last_activity: 2026-09-03
 last_activity_desc: Phase 02 execution started
-state_head: 3aaa875e43c9411b3df74884ba7e8fae0e9c58da
+state_head: fb0dd95e71887b46ec19efbc5fd3ecfbb777a533
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
 milestone_name: Ollama Cloud Provider
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 ## Current Position
 
 Phase: 02 (Docker Compose Orchestration) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-09-03 — Phase 02 execution started
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 55min | 3 tasks | 10 files |
 | Phase 01 P04 | 25min | 3 tasks | 2 files |
 | Phase 02 P01 | 35min | 3 tasks | 7 files |
+| Phase 02 P02 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: OLLAMA-05 closed - health:check now registers and reports a real status for ollama_cloud; a full-application-boot regression test guards the boot-order invariant.
 - [Phase 02]: 02-01: Renamed compose.dev.yml's Reverb host-port override from REVERB_PORT to DEV_REVERB_PORT to avoid a silent collision with this repo's own .env, which already sets REVERB_PORT=8080 for native/Herd dev and gets auto-loaded by docker compose for ${VAR} substitution.
 - [Phase 02]: 02-01: .env.ci gains REVERB_APP_KEY=ci in place of the deleted VITE_REVERB_APP_KEY=ci, since the Echo bootstrap now reads the key via config('reverb.apps.apps.0.key') and pusher-js still needs a non-empty key to avoid failing the browser suite's assertNoJavaScriptErrors.
+- [Phase 02]: [Phase 02]: 02-02: healthcheck-reverb binary confirmed present in ghcr.io/relaticle/relaticle:latest, resolving RESEARCH.md assumption A4; used directly with no TCP fallback.
 
 ### Pending Todos
 
@@ -108,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-03T09:42:52.438Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-09-03T09:48:40.100Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

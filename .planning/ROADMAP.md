@@ -68,7 +68,7 @@ Phases execute in numeric order: 1, 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Ollama Cloud Provider Integration | 4/4 | Complete    | 2026-09-03 |
-| 2. Docker Compose Orchestration | 1/3 | In Progress|  |
+| 2. Docker Compose Orchestration | 2/3 | In Progress|  |
 
 ## Notes
 
@@ -103,12 +103,12 @@ tests/dev MUST build the image(s) and come with all the separate 3rd party servi
   5. Both compose files pin the same Postgres major version, 17 (D-04)
   6. Herd and native `composer run dev` remain the everyday inner loop; the containerized stack supplements them (D-03)
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 **Wave 1**
 
 - [x] 02-01-PLAN.md — Serve Reverb credentials at request time and rebuild `compose.dev.yml` around this repo's own Dockerfile, proven end to end on a live socket (wave 1, D-01/D-03/D-04)
-- [ ] 02-02-PLAN.md — Add the missing `reverb` sidecar to the self-hoster `compose.yml` and wire both Reverb address families without conflating them (wave 1, D-02/D-04)
+- [x] 02-02-PLAN.md — Add the missing `reverb` sidecar to the self-hoster `compose.yml` and wire both Reverb address families without conflating them (wave 1, D-02/D-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
