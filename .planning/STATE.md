@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 current_phase: 02
 current_phase_name: Docker Compose Orchestration
-status: completed
-stopped_at: Phase 01 complete — all phases complete
-last_updated: "2026-09-03T09:15:26.407Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-09-03T09:42:52.535Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase 01 complete
-state_head: cd1a014822c3c4e5137e167aa8f36a2d26b51c12
+last_activity_desc: Phase 02 execution started
+state_head: 3aaa875e43c9411b3df74884ba7e8fae0e9c58da
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
 milestone_name: Ollama Cloud Provider
 ---
 
@@ -24,14 +24,14 @@ milestone_name: Ollama Cloud Provider
 See: .planning/PROJECT.md (updated 2026-09-02)
 
 **Core value:** Sales/ops teams get reliable, tenant-isolated CRM data, with identical write behavior no matter which surface they use — UI, API, MCP, or chat.
-**Current focus:** Phase 01 — Ollama Cloud Provider Integration
+**Current focus:** Phase 02 — Docker Compose Orchestration
 
 ## Current Position
 
-Phase: 02 (Docker Compose Orchestration) — READY TO EXECUTE
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-09-03 — Phase 01 complete
+Phase: 02 (Docker Compose Orchestration) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-09-03 — Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 |------|----------|-------|-------|
 | Phase 01 P01 | 55min | 3 tasks | 10 files |
 | Phase 01 P04 | 25min | 3 tasks | 2 files |
+| Phase 02 P01 | 35min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-01: Model tags confirmed live as gpt-oss:20b / gpt-oss:120b (no -cloud suffix); A-01 resolved (GET /v1/models/{id} returns 200), so ChatProviderCheck's health arm needed no workaround.
 - [Phase 01]: [Phase 01]: 01-04: Deferred HealthServiceProvider::boot()'s Health::checks() registration into $this->app->booted(...) rather than reordering bootstrap/providers.php or moving ChatServiceProvider's settings overlay into register(), per the plan's pre-verified boot-order analysis.
 - [Phase 01]: 01-04: OLLAMA-05 closed - health:check now registers and reports a real status for ollama_cloud; a full-application-boot regression test guards the boot-order invariant.
+- [Phase 02]: 02-01: Renamed compose.dev.yml's Reverb host-port override from REVERB_PORT to DEV_REVERB_PORT to avoid a silent collision with this repo's own .env, which already sets REVERB_PORT=8080 for native/Herd dev and gets auto-loaded by docker compose for ${VAR} substitution.
+- [Phase 02]: 02-01: .env.ci gains REVERB_APP_KEY=ci in place of the deleted VITE_REVERB_APP_KEY=ci, since the Echo bootstrap now reads the key via config('reverb.apps.apps.0.key') and pusher-js still needs a non-empty key to avoid failing the browser suite's assertNoJavaScriptErrors.
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-03T07:25:51.407Z
-Stopped at: Phase 01 complete — all phases complete
+Last session: 2026-09-03T09:42:52.438Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
