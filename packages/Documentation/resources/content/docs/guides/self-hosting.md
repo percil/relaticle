@@ -2,7 +2,7 @@
 title: Self-Hosting Guide
 description: Deploy Relaticle with Docker or manually.
 order: 1
-updated: "2026-08-30"
+updated: "2026-09-03"
 ---
 
 Deploy Relaticle on your own infrastructure with Docker or manually.
@@ -19,10 +19,13 @@ Get Relaticle running in 5 steps:
 curl -o compose.yml https://raw.githubusercontent.com/Relaticle/relaticle/main/compose.yml
 ```
 
-2. Generate an application key:
+2. Generate an application key and three Reverb secrets:
 
 ```bash
 echo "APP_KEY=base64:$(openssl rand -base64 32)"
+echo "REVERB_APP_ID=$(openssl rand -hex 16)"
+echo "REVERB_APP_KEY=$(openssl rand -hex 16)"
+echo "REVERB_APP_SECRET=$(openssl rand -hex 16)"
 ```
 
 3. Create a `.env` file with your settings:
@@ -31,6 +34,9 @@ echo "APP_KEY=base64:$(openssl rand -base64 32)"
 APP_KEY=base64:your-generated-key-here
 DB_PASSWORD=your-secure-database-password
 APP_URL=https://crm.example.com
+REVERB_APP_ID=your-generated-reverb-id
+REVERB_APP_KEY=your-generated-reverb-key
+REVERB_APP_SECRET=your-generated-reverb-secret
 ```
 
 4. Start the containers:
@@ -71,6 +77,9 @@ These must be set or the containers will refuse to start.
 |----------|-------------|
 | `APP_KEY` | Encryption key. Generate with `openssl rand -base64 32`, then prefix with `base64:`. |
 | `DB_PASSWORD` | PostgreSQL password. Use a strong random value. |
+| `REVERB_APP_ID` | Reverb application identifier, used to namespace WebSocket connections. Generate with `openssl rand -hex 16`. Use a different value for every install. |
+| `REVERB_APP_KEY` | Reverb's public client key. Generate with `openssl rand -hex 16`. This value is sent to every browser and appears in page source by design, the same way a Pusher key is public. |
+| `REVERB_APP_SECRET` | Reverb's private secret, used to authenticate server-to-server broadcasts. Generate with `openssl rand -base64 32`. Unlike `REVERB_APP_KEY`, this value must never be exposed; keep it out of client code and public repositories. |
 
 ### Application
 
@@ -83,10 +92,15 @@ These must be set or the containers will refuse to start.
 | `APP_URL` | `http://localhost` | Full URL where Relaticle is accessible. Include the scheme. |
 | `APP_PORT` | `80` | Host port the app container binds to. |
 | `APP_PANEL_DOMAIN` | (empty) | Set for subdomain routing (e.g., `app.example.com`). Leave empty for path mode (`/app`). |
+| `REVERB_HOST` | `localhost` | The address the browser opens a WebSocket to for real-time chat streaming. Set it to your public hostname once a reverse proxy is in front, matching how you route the `reverb` container in the [Reverse Proxy](#reverse-proxy-and-ssl) section below. |
+| `REVERB_PORT` | `8080` | The port the browser connects to, and the host port the `reverb` container publishes. Set it to whatever port your reverse proxy terminates the WebSocket on. |
+| `REVERB_SCHEME` | `http` | `http` or `https`. Set to `https` once a reverse proxy is terminating TLS in front of the `reverb` container. |
 | `PASSKEYS_USER_HANDLE_SECRET` | `APP_KEY` | Derives the opaque WebAuthn user handle stored on each authenticator. Set it to its own random value (`openssl rand -base64 32`) before anyone registers a passkey, so rotating `APP_KEY` later does not change every user's handle. |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` | When `false`, users sign in without verifying their email. That is useful for self-hosters who haven't configured SMTP yet. The admin you create via `make:filament-user` is auto-verified regardless, so the default of `true` is safe for fresh Docker installs. Only set to `false` if your panel is on a private network: with verification disabled, anyone who can reach the sign-in page can create a working account. |
 | `LOG_CHANNEL` | `stderr` | Where logs go. `stderr` is recommended for Docker. |
 | `LOG_LEVEL` | `warning` | Minimum log level. Use `debug` for troubleshooting. |
+
+**Note**: The browser reads its `REVERB_APP_KEY`, `REVERB_HOST`, `REVERB_PORT` and `REVERB_SCHEME` values from the server at request time, not from values baked into the image at build time. The same published image works for any domain without rebuilding. Live chat streaming needs an image built at or after this change: if you pin an older tag, every container reports healthy but the browser never opens a socket, because the served page does not carry these values yet.
 
 ### Mail
 
@@ -163,13 +177,14 @@ Toggle features on or off. All are enabled by default. Useful for forks and cust
 
 ## Architecture
 
-The Docker setup runs 5 containers:
+The Docker setup runs 6 containers:
 
 | Container | Image | Purpose |
 |-----------|-------|---------|
 | **app** | `ghcr.io/relaticle/relaticle:latest` | Web server (nginx + PHP-FPM) on port 8080. Runs migrations automatically on startup. |
 | **horizon** | `ghcr.io/relaticle/relaticle:latest` | Queue worker powered by Laravel Horizon. Processes background jobs. |
 | **scheduler** | `ghcr.io/relaticle/relaticle:latest` | Runs `schedule:work` for recurring tasks (e.g., cleanup, notifications). |
+| **reverb** | `ghcr.io/relaticle/relaticle:latest` | WebSocket server powered by Laravel Reverb. Carries real-time chat message streaming to the browser. |
 | **postgres** | `postgres:17-alpine` | PostgreSQL 17 database. |
 | **redis** | `redis:7-alpine` | Cache, sessions, and queue backend. Runs with append-only persistence. |
 
@@ -183,7 +198,7 @@ The Docker setup runs 5 containers:
 
 ### Networking
 
-The app container listens on port 8080 internally and maps to `APP_PORT` (default 80) on the host. All containers communicate through Docker's internal network. Only the app container exposes a port to the host.
+The app container listens on port 8080 internally and maps to `APP_PORT` (default 80) on the host. The reverb container also listens on port 8080 internally and maps to `REVERB_PORT` (default 8080) on the host, so the browser has a socket to connect to. Every other container, postgres, redis, horizon and scheduler, communicates only through Docker's internal network and publishes nothing to the host.
 
 ---
 
@@ -241,15 +256,44 @@ server {
 }
 ```
 
+The reverb container needs its own server block, proxying to its published host port (`REVERB_PORT`, default 8080) with the `Upgrade` and `Connection` headers set and response buffering off, both required for a WebSocket handshake to survive the proxy:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name ws.crm.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/ws.crm.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ws.crm.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 86400;
+        proxy_buffering off;
+    }
+}
+```
+
+Set `REVERB_HOST=ws.crm.example.com` and `REVERB_SCHEME=https` so the browser connects through this block instead of the reverb container's plain HTTP port directly.
+
 ### Caddy
 
 ```
 crm.example.com {
     reverse_proxy 127.0.0.1:80
 }
+
+ws.crm.example.com {
+    reverse_proxy 127.0.0.1:8080
+}
 ```
 
-Caddy handles SSL certificates automatically via Let's Encrypt.
+Caddy handles SSL certificates automatically via Let's Encrypt, and detects a WebSocket `Upgrade` header on its own, so the reverb block needs no extra headers. Set `REVERB_HOST=ws.crm.example.com` and `REVERB_SCHEME=https` to match.
 
 ### Traefik
 
@@ -263,6 +307,19 @@ labels:
   - "traefik.http.routers.relaticle.tls.certresolver=letsencrypt"
   - "traefik.http.services.relaticle.loadbalancer.server.port=8080"
 ```
+
+Add these labels to the `reverb` service in your `compose.yml`, on a dedicated hostname since it is a separate container:
+
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.relaticle-reverb.rule=Host(`ws.crm.example.com`)"
+  - "traefik.http.routers.relaticle-reverb.entrypoints=websecure"
+  - "traefik.http.routers.relaticle-reverb.tls.certresolver=letsencrypt"
+  - "traefik.http.services.relaticle-reverb.loadbalancer.server.port=8080"
+```
+
+Traefik forwards WebSocket upgrades transparently once the router matches, so no extra label is needed. Set `REVERB_HOST=ws.crm.example.com` and `REVERB_SCHEME=https` to match this router.
 
 **Note**: When using a reverse proxy, set `APP_URL` to your public HTTPS URL (e.g., `https://crm.example.com`). The app trusts `X-Forwarded-*` headers from RFC1918 private networks, loopback, and IPv6 ULA/link-local, which covers Coolify/Dokploy/Traefik on a Docker network and reverse proxies on the host. Headers from public IPs are rejected, preventing spoofing.
 
@@ -291,6 +348,9 @@ APP_KEY=base64:your-generated-key-here
 DB_PASSWORD=your-secure-database-password
 APP_URL=https://crm.yourdomain.com
 APP_PORT=8080
+REVERB_APP_ID=your-generated-reverb-id
+REVERB_APP_KEY=your-generated-reverb-key
+REVERB_APP_SECRET=your-generated-reverb-secret
 ```
 
 Generate your `APP_KEY` with:
@@ -299,11 +359,13 @@ Generate your `APP_KEY` with:
 echo "base64:$(openssl rand -base64 32)"
 ```
 
+Generate the three `REVERB_*` values with `openssl rand -hex 16`, a different value for each and for every install.
+
 **Note**: Set `APP_PORT=8080` so the container maps port 8080:8080, avoiding conflicts with Dokploy's own port 80.
 
 ### 4. Deploy
 
-Click **Deploy**. Dokploy will pull the images and start all 5 containers. Wait for health checks to pass.
+Click **Deploy**. Dokploy will pull the images and start all 6 containers. Wait for health checks to pass.
 
 ### 5. Configure Domain
 
@@ -346,6 +408,9 @@ In the resource's **Environment Variables** section, add:
 APP_KEY=base64:your-generated-key-here
 DB_PASSWORD=your-secure-database-password
 APP_URL=https://crm.yourdomain.com
+REVERB_APP_ID=your-generated-reverb-id
+REVERB_APP_KEY=your-generated-reverb-key
+REVERB_APP_SECRET=your-generated-reverb-secret
 ```
 
 ### 4. Set Up Domain
