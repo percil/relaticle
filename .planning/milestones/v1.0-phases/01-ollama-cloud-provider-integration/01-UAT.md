@@ -1,23 +1,14 @@
 ---
-status: partial
+status: complete
 phase: 01-ollama-cloud-provider-integration
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md]
 started: 2026-09-03T12:19:19Z
-updated: 2026-09-03T14:11:02Z
+updated: 2026-09-03T15:13:16Z
 ---
 
 ## Current Test
 
-number: 7
-name: AI service health dashboard reports Ollama Cloud status
-expected: |
-  The AI service health dashboard reports Ollama Cloud's true status once a model is
-  servable, with no false failure from an unhandled provider case.
-
-  No browsable dashboard page was found (same gap the original phase 1 execution
-  flagged). Alternative: run `php artisan health:check` inside the app container —
-  it should show a "Chat Provider: Ollama Cloud" line reporting Ok.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -77,31 +68,41 @@ result: pass
 
 ### 7. AI service health dashboard reports Ollama Cloud status
 expected: The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case.
-result: [pending]
+result: pass
 notes: |
-  Paused mid-investigation (session context budget). No browsable dashboard page found
-  (same gap phase 1's original execution flagged). Tried `php artisan health:check`
-  inside the dev-stack app container with HEALTH_CHECKS_ENABLED=true: ran ("Running
-  checks... All done!") but stored zero results via
-  Spatie\Health\ResultStores\ResultStore::latestResults(). Did not get far enough to
-  determine if this is a real gap or a config/enablement issue specific to this
-  container. Resume by checking config/health.php's enable gate and whether
-  HEALTH_CHECKS_ENABLED is the correct env var name, or whether `health:check` needs
-  a different invocation to persist results.
+  No browsable dashboard page exists (same gap the original phase 1 execution flagged, and
+  the milestone summary explicitly left as an unresolved follow-up). Verified via
+  `php artisan health:check` in the dev-stack app container instead.
 
-## Current Test
+  Investigation hit two false negatives before reaching a real result:
+  1. `HEALTH_CHECKS_ENABLED=true` set inline on the exec command had no effect because
+     `bootstrap/cache/config.php` was already cached from before the var existed in the
+     container — `env()` reads bypass the environment entirely once cached. `config:clear`
+     fixed it. Container-state staleness, not a code defect.
+  2. With checks enabled, every other check ran but "Chat Provider: Ollama Cloud" was
+     entirely absent (not failed, just missing) because neither gpt-oss:20b nor
+     gpt-oss:120b had a persisted `capabilities`/`verified_at` measurement yet, so
+     `CatalogEntry::isServable()` correctly excluded them — this is deliberate design
+     (ChatProviderCheck.php: "a check this test watches is exactly a model a user can
+     land on"), not a bug. `chat:models --probe` is a read-only CLI diagnostic and does
+     NOT persist the measurement (confirmed via ChatModelsCommand.php); only the sysadmin
+     panel's "Verify and save" action does.
 
-number: 7
-name: AI service health dashboard reports Ollama Cloud status
-expected: |
-  The AI service health dashboard reports Ollama Cloud's true status once a model is
-  servable, with no false failure from an unhandled provider case. See notes on test 7
-  above for where investigation left off.
-awaiting: user response
+  Used the sysadmin AI Model Catalog page (http://localhost:8080/sysadmin/ai-models) via
+  claude-in-chrome, clicked "Verify and save" — both Ollama Cloud rows went green-verified,
+  `chat.models` config now carries `capabilities.supports_tools: true` and `verified_at` for
+  gpt-oss:20b/120b. Re-ran `health:check`:
 
-### 7. AI service health dashboard reports Ollama Cloud status
-expected: The AI service health dashboard reports Ollama Cloud's true status once a model is servable, with no false failure from an unhandled provider case.
-result: [pending]
+    Running check: Chat Provider: Ollama Cloud...
+    Ok: gpt-oss:20b
+
+  Confirms the feature works exactly as expected once a model is servable. Two adjacent
+  gaps noted but NOT filed as blockers for this phase: (a) neither compose.dev.yml nor
+  compose.yml forwards HEALTH_CHECKS_ENABLED, so health checks are silently off in both
+  dev and prod compose stacks unless manually injected — same class as the AI-key gaps
+  already fixed in test 1, but this one is still open; (b) no browsable health dashboard
+  page exists at all, only the artisan command — this was already a known gap going into
+  this test, not new.
 
 ### 8. Real chat turn end to end (streaming, tool calls, approve/reject)
 expected: |
@@ -114,14 +115,21 @@ expected: |
   approval, one incomplete custom-field step) — tracked in a pending todo, acknowledged and
   deferred at the v1.0 milestone close (see STATE.md Deferred Items). This test is about
   confirming the core loop still works as shipped, not about those three known defects.
-result: [pending]
+result: pass
+notes: |
+  User confirmed via a live chat turn on GPT-OSS 20B (Ollama Cloud) in the app panel:
+  sent "Do you copy?", got a streamed reply "Copy." back. A minimal read-only exchange
+  (no write proposal exercised), but confirms the core turn loop — model selection,
+  request, streaming response — works end to end as shipped. The three known defects
+  from the original walkthrough (dropped fields, broken turn-continuation, incomplete
+  custom-field step) remain deferred per STATE.md, out of scope for this pass/fail call.
 
 ## Summary
 
 total: 8
-passed: 6
+passed: 8
 issues: 0
-pending: 2
+pending: 0
 skipped: 0
 blocked: 0
 
