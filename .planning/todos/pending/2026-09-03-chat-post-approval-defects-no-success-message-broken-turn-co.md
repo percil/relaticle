@@ -4,10 +4,15 @@ title: Chat post-approval defects - no success message, broken turn-continuation
 area: chat
 severity: major
 files:
+
   - packages/Chat/src/Jobs/ProcessChatMessage.php
   - packages/Chat/src/Support/ProviderStreamError.php
   - .planning/phases/01-ollama-cloud-provider-integration/01-03-SUMMARY.md
   - .planning/phases/01-ollama-cloud-provider-integration/01-VERIFICATION.md
+
+audit_acknowledged:
+  milestone: v1.0
+  at: 2026-09-03
 ---
 
 ## Problem
@@ -54,6 +59,7 @@ one:
 
 TBD — needs triage to confirm root cause and scope (chat-system-wide vs. provider-specific)
 before deciding on a fix approach. Candidate starting points:
+
 - Defect 1: investigate why `TurnContinuationService`'s follow-up request 401s after a
   successful approval, and why no success message renders regardless of that failure.
 - Defect 2: likely a model/prompt-fidelity issue rather than a code bug; may need prompt
