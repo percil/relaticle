@@ -35,6 +35,21 @@ services:
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Relaticle}
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+      # Browser-facing Reverb address (what the panel renders into the page).
+      # Independently configurable from the internal family above so a
+      # reverse-proxied self-hoster can terminate TLS on the public socket.
+      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-reverb}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_HOST: ${REVERB_HOST:-localhost}
+      REVERB_PORT: ${REVERB_PORT:-8080}
+      REVERB_SCHEME: ${REVERB_SCHEME:-http}
       # serversideup/php Laravel automations
       AUTORUN_ENABLED: "true"
       AUTORUN_LARAVEL_MIGRATION: "true"
@@ -77,6 +92,13 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
       # Disable automations for worker container
       AUTORUN_ENABLED: "false"
     volumes:
@@ -114,6 +136,13 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
       # Disable automations for scheduler container
       AUTORUN_ENABLED: "false"
     volumes:
@@ -123,6 +152,42 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+
+  reverb:
+    image: ghcr.io/relaticle/relaticle:latest
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    stop_signal: SIGTERM
+    # Published so the browser has a socket to open: without this port the
+    # whole point of "download compose.yml, docker compose up -d" breaks for
+    # real-time chat. A self-hoster terminating TLS in front of Reverb should
+    # front this port with their reverse proxy and set REVERB_SCHEME=https.
+    ports:
+      - "${REVERB_PORT:-8080}:8080"
+    environment:
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      # Load-bearing, not boilerplate: Reverb builds allowed_origins from
+      # config('app.url') inside this container, so a missing/wrong value
+      # closes every browser handshake with code 4009.
+      APP_URL: ${APP_URL:-http://localhost}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
+      # Escape hatch for a self-hoster whose WebSocket origin differs from APP_URL.
+      REVERB_ALLOWED_ORIGIN_EXTRA: ${REVERB_ALLOWED_ORIGIN_EXTRA:-}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-reverb"]
       start_period: 10s
 
   postgres:
