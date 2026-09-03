@@ -76,6 +76,13 @@ human_verification:
       Ollama-Cloud-specific plumbing), so whether it blocks THIS phase's completion versus
       being tracked as an independent follow-up issue is a scope decision this verifier should
       not make unilaterally.
+    resolution: >
+      User decided (2026-09-03): does not block Phase 01 sign-off. Confirmed as a pre-existing,
+      general chat-system bug rather than Ollama-Cloud-specific. Tracked separately at
+      .planning/todos/pending/2026-09-03-chat-post-approval-defects-no-success-message-broken-turn-co.md.
+      Criterion 5 / OLLAMA-06 is accepted as substantively met: the core loop (streaming, single-
+      and two-step proposal cards, clean reject-cascade) is confirmed working against real
+      Horizon/Redis/Reverb on a verified Ollama Cloud model.
 ---
 
 # Phase 01: Ollama Cloud Provider Integration Verification Report
