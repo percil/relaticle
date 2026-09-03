@@ -1,17 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 01
+current_phase: 02
+current_phase_name: Docker Compose Orchestration
 status: completed
 stopped_at: Phase 01 complete — all phases complete
-last_updated: "2026-09-03T07:44:20.131Z"
+last_updated: "2026-09-03T09:15:26.407Z"
 last_activity: 2026-09-03
 last_activity_desc: Phase 01 complete
-state_head: 9f91353f592e2e6ccb25c78f0ab36478486bd7d0
+state_head: cd1a014822c3c4e5137e167aa8f36a2d26b51c12
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 4
+  total_plans: 7
   completed_plans: 4
 milestone_name: Ollama Cloud Provider
 ---
@@ -27,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-02)
 
 ## Current Position
 
-Phase: 01
+Phase: 02 (Docker Compose Orchestration) — READY TO EXECUTE
 Plan: Not started
 Status: All phases complete
 Last activity: 2026-09-03 — Phase 01 complete
@@ -88,6 +89,11 @@ None yet.
 - `packages/SystemAdmin` is excluded from PHPStan. Any enum gaining an `ollama_cloud` case needs a manual sweep of SystemAdmin `match` expressions.
 - Config collision risk: `ollama_cloud` must stay strictly distinct from the existing self-hosted `ollama` key, or paid models silently become free and unplan-gated.
 - 01-02: Task 2 could not be executed. This execution sandbox has no Herd (or any) web server serving the app, and the agent-browser CLI referenced by the agent-browser-relaticle skill is not installed anywhere on the machine (confirmed via which/find across PATH, homebrew, cargo, go, bun, npm global). Task 2 requires driving the live sysadmin panel through a real browser session to exercise ManageAiSettings::save() -> verified() -> ModelProbe against the real Ollama Cloud API; this cannot be done via tinker/DB writes without defeating the task's whole purpose. Docker services (pgsql, redis, meilisearch, mailpit) ARE running. OLLAMA_CLOUD_API_KEY precondition IS satisfied (config:show confirmed). Blocked pending either: a working browser-automation tool in this environment, or the user running Task 2's STEP B-H themselves on a machine with Herd + agent-browser available.
+
+### Roadmap Evolution
+
+- Phase 2 added: Docker Compose Orchestration
+- Phase 2 edited: edited fields: title, goal (cleaned up verbatim multi-paragraph description)
 
 ## Deferred Items
 
