@@ -209,7 +209,7 @@ final class AppPanelProvider extends PanelProvider
 
         $panel
             ->homeUrl(fn (): string => Dashboard::getUrl())
-            ->brandName('Relaticle')
+            ->brandName(config('relaticle.brand.name'))
             ->brandLogo(fn (): View|Factory => Auth::user()?->hasVerifiedEmail()
                 ? view('filament.app.logo-empty')
                 : view('filament.app.logo'))

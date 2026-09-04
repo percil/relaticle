@@ -1,1 +1,1 @@
-<span class="sr-only">Relaticle</span>
+<span class="sr-only">{{ config('relaticle.brand.name') }}</span>

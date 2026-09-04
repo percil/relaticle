@@ -33,6 +33,6 @@ return [
         'sign_out' => 'Sign out',
     ],
     'footer' => [
-        'copyright' => '© :year Relaticle',
+        'copyright' => '© :year :brand',
     ],
 ];

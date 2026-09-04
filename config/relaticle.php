@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 return [
 
+    'brand' => [
+        'name' => env('RELATICLE_BRAND_NAME', config('app.name')),
+    ],
+
     'contact' => [
-        'email' => env('CONTACT_EMAIL', 'hello@relaticle.com'),
+        'email' => env('CONTACT_EMAIL', 'admin@example.com'),
     ],
 
     'company' => [
-        'name' => env('RELATICLE_COMPANY_NAME', 'Relaticle'),
+        'name' => env('RELATICLE_COMPANY_NAME', config('app.name')),
         'address' => env('RELATICLE_COMPANY_ADDRESS', ''),
     ],
 
