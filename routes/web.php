@@ -5,17 +5,10 @@ declare(strict_types=1);
 use App\Features\Documentation;
 use App\Features\SocialAuth;
 use App\Http\Controllers\AcceptTeamInvitationController;
-use App\Http\Controllers\AlternativesController;
 use App\Http\Controllers\Auth\CallbackController;
 use App\Http\Controllers\Auth\RedirectController;
-use App\Http\Controllers\ComparisonController;
-use App\Http\Controllers\ContactController;
-use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JoinTeamViaLinkController;
-use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\SwitchInvitationAccountController;
-use App\Http\Controllers\TermsOfServiceController;
-use App\Http\Middleware\AddVaryAcceptHeader;
 use App\Http\Middleware\ThrottleBeforeAuthentication;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
@@ -23,8 +16,6 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Route;
 use Laravel\Pennant\Feature;
 use Relaticle\Documentation\Support\DocsRepository;
-use Spatie\Honeypot\ProtectAgainstSpam;
-use Spatie\MarkdownResponse\Middleware\ProvideMarkdownResponse;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,7 +47,7 @@ Route::middleware('guest')->group(function () {
 
 Route::get('/.well-known/security.txt', function (): Response {
     $lines = [
-        'Contact: mailto:security@relaticle.com',
+        'Contact: mailto:'.config('relaticle.contact.email'),
         'Expires: '.now()->addMonths(6)->toIso8601ZuluString(),
         'Preferred-Languages: en',
         'Canonical: '.url('/.well-known/security.txt'),
@@ -68,19 +59,13 @@ Route::get('/.well-known/security.txt', function (): Response {
     ]);
 })->name('securityTxt');
 
-Route::middleware([ProvideMarkdownResponse::class, AddVaryAcceptHeader::class])->group(function (): void {
-    Route::get('/', HomeController::class);
-    Route::get('/terms-of-service', TermsOfServiceController::class)->name('terms.show');
-    Route::get('/privacy-policy', PrivacyPolicyController::class)->name('policy.show');
-    Route::get('/pricing', fn () => view('pricing'))->name('pricing');
-    Route::get('/press', fn () => view('press'))->name('press');
-    Route::get('/ai', fn () => view('ai'))->name('ai');
-    Route::get('/self-hosted', fn () => view('self-hosted'))->name('selfHosted');
-    Route::get('/compare/relaticle-vs-{competitor}', [ComparisonController::class, 'show'])->name('compare.show');
-    Route::get('/alternatives/{competitor}', [AlternativesController::class, 'show'])->name('alternatives.show');
-    Route::get('/contact', [ContactController::class, 'show'])->name('contact');
-    Route::post('/contact', [ContactController::class, 'store'])->middleware(['throttle:5,1,contact-form', ProtectAgainstSpam::class]);
-});
+// The panel owns "/" once it is domain-routed; registering an app route there
+// too would let two route matchers claim the same URI depending on which
+// domain resolved first. Guarding on app_panel_domain being unset removes the
+// collision by construction instead of relying on registration order.
+if (config('app.app_panel_domain') === null) {
+    Route::get('/', fn () => redirect()->to(url()->getAppUrl()))->name('home');
+}
 
 Route::get('/dashboard', fn () => redirect()->to(url()->getAppUrl()))->name('dashboard');
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Relaticle\Documentation\Http\Controllers;
 
-use App\Support\CompetitorFacts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -135,23 +134,6 @@ final readonly class HelpController
             array_push($lines, '', '## '.__('Developer Documentation'), '', ...$docs);
         }
 
-        array_push($lines, '', '## '.__('Product'), '', ...$this->llmsTxtProductEntries());
-
-        $comparisons = $this->llmsTxtComparisonEntries();
-
-        if ($comparisons !== []) {
-            array_push($lines, '', '## '.__('Comparisons & Alternatives'), '', ...$comparisons);
-        }
-        $lines[] = '';
-        $lines[] = '## '.__('Company');
-        $lines[] = '';
-        $lines[] = sprintf(
-            '- [%s](%s): %s',
-            __('Press Kit & Facts'),
-            route('press'),
-            __('Founding date, license, GitHub stars, pricing, tech stack, and product screenshots.'),
-        );
-
         $blog = $this->llmsTxtBlogEntries();
 
         if ($blog !== []) {
@@ -159,60 +141,6 @@ final readonly class HelpController
         }
 
         return implode("\n", $lines)."\n";
-    }
-
-    /** @return list<string> */
-    private function llmsTxtProductEntries(): array
-    {
-        $assistantName = (string) config('chat.assistant_name');
-
-        return [
-            sprintf(
-                '- [%s](%s): %s',
-                __(':name, the AI Assistant', ['name' => $assistantName]),
-                route('ai'),
-                __('What the built-in AI assistant does, the approval flow, model choice, and MCP access.'),
-            ),
-            sprintf(
-                '- [%s](%s): %s',
-                __('Self-Hosted CRM'),
-                route('selfHosted'),
-                __('Run Relaticle on your own server with Docker Compose, AGPL-3.0, and local AI via Ollama.'),
-            ),
-        ];
-    }
-
-    /** @return list<string> */
-    private function llmsTxtComparisonEntries(): array
-    {
-        $facts = CompetitorFacts::all();
-        $entries = [];
-
-        /** @var array<int, string> $compare */
-        $compare = config('comparisons.compare', []);
-
-        foreach ($compare as $slug) {
-            $entries[] = sprintf(
-                '- [%s](%s): %s',
-                __('Relaticle vs :name', ['name' => $facts[$slug]['name']]),
-                route('compare.show', ['competitor' => $slug]),
-                __('License, pricing, GitHub activity, tech stack, and AI/MCP support compared with dated, sourced facts.'),
-            );
-        }
-
-        /** @var array<int, string> $alternatives */
-        $alternatives = config('comparisons.alternatives', []);
-
-        foreach ($alternatives as $slug) {
-            $entries[] = sprintf(
-                '- [%s](%s): %s',
-                __(':name Alternative', ['name' => $facts[$slug]['name']]),
-                route('alternatives.show', ['competitor' => $slug]),
-                __('Why teams switch from :name to an open-source, self-hosted CRM, with the CSV migration path.', ['name' => $facts[$slug]['name']]),
-            );
-        }
-
-        return $entries;
     }
 
     /** @return list<string> */

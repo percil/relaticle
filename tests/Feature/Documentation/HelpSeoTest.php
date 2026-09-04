@@ -149,20 +149,7 @@ it('serves an llms.txt indexing help and docs', function (): void {
     expect($body)->toContain('/help/getting-started/create-your-first-company')
         ->and($body)->toContain('/developers/self-hosting')
         ->and($body)->toContain('Help Centre')
-        ->and($body)->toContain('Documentation')
-        ->and($body)->toContain('/compare/relaticle-vs-twenty')
-        ->and($body)->toContain('/compare/relaticle-vs-espocrm')
-        ->and($body)->toContain('/alternatives/attio')
-        ->and($body)->toContain('/alternatives/hubspot')
-        ->and($body)->toContain('/press');
-});
-
-it('lists the product pages in llms.txt', function (): void {
-    $body = $this->get('/llms.txt')->assertOk()->getContent();
-
-    expect($body)->toContain(route('ai'))
-        ->and($body)->toContain(route('selfHosted'))
-        ->and($body)->toContain(config('chat.assistant_name'));
+        ->and($body)->toContain('Documentation');
 });
 
 it('gives the search index anchors that equal the real heading ids the renderer emits', function (): void {

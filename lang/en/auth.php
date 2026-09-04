@@ -33,10 +33,6 @@ return [
         'sign_out' => 'Sign out',
     ],
     'footer' => [
-        'terms_notice' => 'By proceeding you acknowledge that you have read, understood and agree to our :terms.',
-        'terms_of_service' => 'Terms of Service',
         'copyright' => '© :year Relaticle',
-        'privacy_policy' => 'Privacy Policy',
-        'support' => 'Support',
     ],
 ];

@@ -32,13 +32,15 @@ it('renders an article with its rendered body', function (): void {
 });
 
 it('offers a direct contact path from the hub and the article footer', function (): void {
+    $contactMailto = 'mailto:'.config('relaticle.contact.email');
+
     $this->get('/help')
         ->assertOk()
-        ->assertSee(route('contact'), false);
+        ->assertSee($contactMailto, false);
 
     $this->get('/help/getting-started/create-your-first-company')
         ->assertOk()
-        ->assertSee(route('contact'), false)
+        ->assertSee($contactMailto, false)
         ->assertSee('Contact support', false);
 });
 
@@ -98,13 +100,4 @@ it('keeps the shell chrome out of the markdown variant', function (): void {
         ->and($markdown)->not->toContain('Browse the docs')
         ->and($markdown)->not->toContain('Skip to content')
         ->and($markdown)->toContain('A company record tracks an account');
-});
-
-it('links to help and developers from the marketing header, mobile nav, and footer', function (): void {
-    $html = $this->get('/')->assertOk()->getContent();
-
-    // A future nav refactor that silently drops one of these anchors still
-    // passes an "assertSee" style check -- count the occurrences instead.
-    expect(substr_count($html, route('help.index')))->toBeGreaterThanOrEqual(3)
-        ->and(substr_count($html, route('documentation.index')))->toBeGreaterThanOrEqual(3);
 });
