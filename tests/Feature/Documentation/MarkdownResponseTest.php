@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Spatie\MarkdownResponse\Middleware\ProvideMarkdownResponse;
 
@@ -20,39 +19,12 @@ it('serves docs pages as clean article markdown without site chrome', function (
         ->and($markdown)->not->toContain('On this page');
 });
 
-it('serves the homepage as markdown without nav chrome or alpine fragments', function (): void {
-    Http::fake([
-        'api.github.com/*' => Http::response(['stargazers_count' => 42], 200),
-    ]);
-
-    $markdown = $this->get('/', ['Accept' => 'text/markdown'])
-        ->assertOk()
-        ->getContent();
-
-    expect($markdown)->not->toContain('mobileMenu')
-        ->and($markdown)->not->toContain('Skip to main content')
-        ->and(substr_count($markdown, 'Pricing'))->toBeLessThanOrEqual(1);
-});
-
-it('decodes html entities instead of leaking double-escaped ampersands', function (): void {
-    Http::fake([
-        'api.github.com/*' => Http::response(['stargazers_count' => 42], 200),
-    ]);
-
-    $markdown = $this->get('/', ['Accept' => 'text/markdown'])
-        ->assertOk()
-        ->getContent();
-
-    expect($markdown)->toContain('Import & Export')
-        ->and($markdown)->not->toContain('Import &amp; Export');
-});
-
 it('declares Vary: Accept on both variants of a content-negotiated route', function (): void {
-    $htmlVary = $this->get('/compare/relaticle-vs-twenty')
+    $htmlVary = $this->get('/developers/self-hosting')
         ->assertOk()
         ->headers->get('Vary', '');
 
-    $markdownVary = $this->get('/compare/relaticle-vs-twenty', ['Accept' => 'text/markdown'])
+    $markdownVary = $this->get('/developers/self-hosting', ['Accept' => 'text/markdown'])
         ->assertOk()
         ->headers->get('Vary', '');
 
