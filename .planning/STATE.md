@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-03)
 Phase: Milestone v1.0 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-03 — Milestone v1.0 completed and archived
+Last activity: 2026-09-04 - Completed quick task 260904-cyu: Purge Relaticle marketing/vitrine surface (fork purge + AGPL compliance)
 
 ## Performance Metrics
 
@@ -95,6 +95,12 @@ None yet.
 - `packages/SystemAdmin` is excluded from PHPStan. Any enum gaining an `ollama_cloud` case needs a manual sweep of SystemAdmin `match` expressions.
 - Config collision risk: `ollama_cloud` must stay strictly distinct from the existing self-hosted `ollama` key, or paid models silently become free and unplan-gated.
 - [Phase 2] Minor: the `reverb` container logged one QueryException on cold boot during UAT (its `reverb:restart` cache check hit sqlite before postgres/redis were ready), self-healed, and reported healthy. Not reproduced as a recurring failure; worth a follow-up look if it happens reliably.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260904-cyu | Purge Relaticle marketing/vitrine surface (fork purge + AGPL compliance) | 2026-09-04 | c02de7ef | [260904-cyu-purge-relaticle-marketing-vitrine-surfac](./quick/260904-cyu-purge-relaticle-marketing-vitrine-surfac/) |
 
 ### Roadmap Evolution
 
