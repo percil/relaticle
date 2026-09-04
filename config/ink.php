@@ -25,20 +25,6 @@ return [
         'mcp' => true,
     ],
 
-    /*
-     * Our own marketing views render through ink's controllers, so we get the
-     * package's listing SEO, search and pagination without duplicating it. These
-     * are app views, not published copies of ink's, so nothing can drift.
-     */
-    'views' => [
-        'index' => 'blog.index',
-        'show' => 'blog.show',
-        'category' => 'blog.index',
-        'tag' => 'blog.index',
-        'preview' => 'blog.preview',
-        'feed' => 'blog.feed',
-    ],
-
     'middleware' => ['web', ProvideMarkdownResponse::class, AddVaryAcceptHeader::class],
 
     /*
@@ -64,14 +50,14 @@ return [
     ],
 
     'feed' => [
-        'title' => 'Relaticle Engineering Blog',
-        'description' => 'Deep dives into building an open-source CRM for AI agents.',
-        'author_email' => 'hello@relaticle.com',
+        'title' => env('BLOG_FEED_TITLE', config('app.name').' Engineering Blog'),
+        'description' => env('BLOG_FEED_DESCRIPTION', 'Deep dives into building an open-source CRM for AI agents.'),
+        'author_email' => env('BLOG_FEED_AUTHOR_EMAIL', config('relaticle.contact.email')),
     ],
 
     'publisher' => [
-        'name' => 'Relaticle',
-        'url' => 'https://relaticle.com',
+        'name' => env('BLOG_PUBLISHER_NAME', config('app.name')),
+        'url' => env('BLOG_PUBLISHER_URL', config('app.url')),
         // Must resolve to a real, fetchable raster image: Google drops the whole
         // Article rich result when the publisher logo 404s.
         'logo' => 'web-app-manifest-512x512.png',

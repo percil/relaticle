@@ -3,7 +3,7 @@
 <x-layouts::filament-standalone :title="$title">
     <div class="flex min-h-screen flex-col">
         <header class="flex justify-center px-6 pt-10">
-            <a href="{{ url('/') }}">
+            <a href="{{ url()->getAppUrl() }}">
                 <x-brand.logo-lockup size="lg" class="text-black dark:text-white" />
             </a>
         </header>

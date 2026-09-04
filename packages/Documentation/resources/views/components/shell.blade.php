@@ -11,7 +11,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <x-layout.head
+    <x-documentation::head
         :title="$title"
         :description="$description"
         :og-title="$ogTitle ?? $title"
@@ -148,9 +148,9 @@
                    class="hidden rounded-lg px-2 py-1.5 text-[13px] font-medium text-gray-600 transition-colors hover:text-gray-900 sm:block dark:text-gray-400 dark:hover:text-white">
                     {{ __('Sign in') }}
                 </a>
-                <x-marketing.button size="sm" href="{{ route('login') }}" class="whitespace-nowrap">
+                <x-documentation::button size="sm" href="{{ route('login') }}" class="whitespace-nowrap">
                     {{ __('Start for free') }}
-                </x-marketing.button>
+                </x-documentation::button>
             </div>
         </div>
     </header>

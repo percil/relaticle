@@ -13,7 +13,7 @@
     // Coalesced rather than defaulted through @props: callers pass the prop
     // through explicitly, so a null from an inner layout must still fall back
     // here instead of emitting an empty description.
-    $description ??= 'Relaticle - The open-source CRM built for people and AI-powered work. Self-hosted with MCP server, REST API, and 22 custom field types.';
+    $description ??= config('app.name').' - self-hosted CRM built for people and AI-powered work.';
     $ogType ??= 'website';
 @endphp
 
@@ -22,7 +22,7 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <meta name="description" content="{{ $description }}">
-{{-- Defaults to the query-stripped URL, which is what consolidates the marketing
+{{-- Defaults to the query-stripped URL, which is what consolidates the docs
      pages. Pages that genuinely paginate pass their own page-aware canonical. --}}
 <link rel="canonical" href="{{ $canonical ?? url()->current() }}" />
 @if($robots)
@@ -36,30 +36,30 @@
 @endphp
 
 <!-- Open Graph Meta Tags -->
-<meta property="og:title" content="{{ $ogTitle ?? $title ?? config('app.name', 'Relaticle') }}"/>
+<meta property="og:title" content="{{ $ogTitle ?? $title ?? config('app.name') }}"/>
 <meta property="og:description" content="{{ $ogDescription ?? $description }}"/>
 <meta property="og:image" content="{{ $ogImage ?? $defaultOgImage }}"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
-<meta property="og:image:alt" content="{{ $ogTitle ?? $title ?? config('app.name', 'Relaticle') }}"/>
+<meta property="og:image:alt" content="{{ $ogTitle ?? $title ?? config('app.name') }}"/>
 <meta property="og:url" content="{{ request()->getUri() }}"/>
 <meta property="og:type" content="{{ $ogType }}" />
-<meta property="og:site_name" content="{{ config('app.name', 'Relaticle') }}" />
+<meta property="og:site_name" content="{{ config('app.name') }}" />
 <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}" />
 
 <!-- Twitter Card Meta Tags -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{ $ogTitle ?? $title ?? config('app.name', 'Relaticle') }}" />
+<meta name="twitter:title" content="{{ $ogTitle ?? $title ?? config('app.name') }}" />
 <meta name="twitter:description" content="{{ $ogDescription ?? $description }}" />
 <meta name="twitter:image" content="{{ $ogImage ?? $defaultOgImage }}" />
-<meta name="twitter:image:alt" content="{{ $ogTitle ?? $title ?? config('app.name', 'Relaticle') }}" />
+<meta name="twitter:image:alt" content="{{ $ogTitle ?? $title ?? config('app.name') }}" />
 
-<title>{{ $title ?? config('app.name', 'Relaticle - CRM Built for People and AI-Powered Work') }}</title>
+<title>{{ $title ?? config('app.name') }}</title>
 <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Relaticle" />
+<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}" />
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 <link rel="manifest" href="/site.webmanifest" />
