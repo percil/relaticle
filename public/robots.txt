@@ -12,5 +12,3 @@ Allow: /
 
 User-agent: Google-Extended
 Allow: /
-
-Sitemap: https://relaticle.com/sitemap.xml
