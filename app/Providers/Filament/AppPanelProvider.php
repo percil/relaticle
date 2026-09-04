@@ -360,6 +360,18 @@ final class AppPanelProvider extends PanelProvider
                 fn (): View|Factory => view('filament.app.sidebar-footer')
             )
             /**
+             * AGPL-3.0 section 13 source offer, visible to every signed-in
+             * user. A second hook at the same location rather than folding
+             * this into filament.app.sidebar-footer above, because that view
+             * is gated behind a workspace-admin check ($canManage) and would
+             * hide the link from everyone else. Filament renders every hook
+             * registered at a given location, so both views appear.
+             */
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_FOOTER,
+                fn (): View|Factory => view('filament.app.source-link')
+            )
+            /**
              * Only rendered for a signed-in user who has no timezone yet. The guest
              * check matters: the panel's own login and registration pages render this
              * hook too, and there the endpoint could only ever answer 401.

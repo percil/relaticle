@@ -19,6 +19,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | AGPL Source Offer
+    |--------------------------------------------------------------------------
+    |
+    | AGPL-3.0 section 13 requires this network-reachable panel to offer its
+    | corresponding source to remote users. This URL is rendered as a link in
+    | the panel sidebar; point it at this fork's own repository.
+    |
+    */
+
+    'source_url' => env('RELATICLE_SOURCE_URL', 'https://github.com/percil/relaticle'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Feature Flags
     |--------------------------------------------------------------------------
     |

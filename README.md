@@ -95,6 +95,12 @@ Visit our [documentation](https://relaticle.com/docs) for guides on business usa
 
 Relaticle is open-source software licensed under the [AGPL-3.0 license](LICENSE).
 
+# Upstream Project
+
+This repository is a modified fork. See [NOTICE.md](NOTICE.md) for the
+upstream project attribution and the date modification began. The upstream
+project lives at [github.com/Relaticle/relaticle](https://github.com/Relaticle/relaticle).
+
 # Star History
 
 [![Star History Chart](https://api.star-history.com/chart?repos=relaticle/relaticle&type=date&legend=top-left&sealed_token=c38GyCHd6M75Bak3QvcMoEfYHGDlV1lAIyuGyJoQ8AA1kyVwXhZR7A1qYLuGDZg9H0LsvERRX3YUEkOWkjt4q0N0y-mlHVm2NI3mDb74NKAka4KPxMrBBA)](https://www.star-history.com/?repos=relaticle%2Frelaticle&type=date&legend=top-left)
