@@ -7,7 +7,6 @@ namespace App\Support\Mail;
 use App\Data\DigestPayload;
 use App\Data\DigestTaskItem;
 use App\Data\DigestTeamSection;
-use App\Mail\NewContactSubmissionMail;
 use App\Mail\ProTrialEndingSoonMail;
 use App\Mail\SetupNudgeMail;
 use App\Mail\TaskAssignedMail;
@@ -74,12 +73,6 @@ final readonly class MailPreview
                 $this->invitation($owner, $team),
                 'preview-token',
             ),
-            'contact-submission' => fn (): Mailable => new NewContactSubmissionMail([
-                'name' => 'Ana Reyes',
-                'email' => 'ana@acme-robotics.example',
-                'company' => 'Acme Robotics',
-                'message' => 'We are evaluating CRMs for a 12-person sales team and need SSO. Can we talk this week?',
-            ]),
             'team-deletion-scheduled' => fn (User $owner, Team $team): MailMessage => new TeamDeletionScheduledNotification($team)->toMail($owner),
             'team-deletion-reminder' => fn (User $owner, Team $team): MailMessage => new TeamDeletionReminderNotification($team)->toMail($owner),
             'team-deletion-cancelled' => fn (User $owner, Team $team): MailMessage => new TeamDeletionCancelledNotification($team)->toMail($owner),
