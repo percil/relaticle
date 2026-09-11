@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-03)
 Phase: Milestone v1.0 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-04 - Completed quick task 260904-fks: Reduce docker-publish.yml to Docker Hub-only, tag-triggered publish to percil/relaticle
+Last activity: 2026-09-11 - Completed quick task 260911-mrc: Forked branch updated from origin. Check that everything is aligned and working.
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260904-cyu | Purge Relaticle marketing/vitrine surface (fork purge + AGPL compliance) | 2026-09-04 | c02de7ef | [260904-cyu-purge-relaticle-marketing-vitrine-surfac](./quick/260904-cyu-purge-relaticle-marketing-vitrine-surfac/) |
 | 260904-fks | Reduce docker-publish.yml to Docker Hub-only, tag-triggered publish to percil/relaticle | 2026-09-04 | 5cf1e560 | [260904-fks-update-github-workflows-docker-publish-y](./quick/260904-fks-update-github-workflows-docker-publish-y/) |
+| 260911-mrc | Forked branch updated from origin. Check that everything is aligned and working. | 2026-09-11 | 2d179ac8 | [260911-mrc-forked-branch-updated-from-origin-check-](./quick/260911-mrc-forked-branch-updated-from-origin-check-/) |
 
 ### Roadmap Evolution
 
