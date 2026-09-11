@@ -39,7 +39,12 @@ use App\Support\ActivityLog\MergedActivityRenderer;
 use App\Support\ActivityLog\RequestActivityBatch;
 use App\Support\BrandColors;
 use App\Support\Markdown\TableAwareLeagueDriver;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Auth\Notifications\NoticeOfEmailChangeRequest;
+use Filament\Auth\Notifications\ResetPassword;
+use Filament\Auth\Notifications\VerifyEmail;
+use Filament\Auth\Notifications\VerifyEmailChange;
 use Filament\Facades\Filament;
 use Filament\Livewire\Notifications;
 use Filament\Support\Facades\FilamentColor;
@@ -54,6 +59,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -89,8 +95,14 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        Date::use(CarbonImmutable::class);
+
         $this->app->bind(\Filament\Auth\Http\Responses\Contracts\LoginResponse::class, LoginResponse::class);
         $this->app->bind(\Filament\Actions\Exports\Models\Export::class, Export::class);
+        $this->app->bind(VerifyEmail::class, \App\Notifications\Auth\VerifyEmail::class);
+        $this->app->bind(VerifyEmailChange::class, \App\Notifications\Auth\VerifyEmailChange::class);
+        $this->app->bind(ResetPassword::class, \App\Notifications\Auth\ResetPassword::class);
+        $this->app->bind(NoticeOfEmailChangeRequest::class, \App\Notifications\Auth\NoticeOfEmailChangeRequest::class);
 
         // Ink registers its public routes from packageBooted(), which runs after every
         // provider's register(). Read the config key App\Features\Blog resolves from
@@ -123,7 +135,7 @@ final class AppServiceProvider extends ServiceProvider
         // worker that touches two workspaces. Rebinding per resolve gives each
         // lookup its own step objects, so once() memoizes within one lookup as
         // intended. Registration lives here because a fresh registry starts empty.
-        $this->app->bind(OnboardingSteps::class, function (): OnboardingSteps {
+        $this->app->bind(function (): OnboardingSteps {
             $steps = new OnboardingSteps;
 
             ActivationSteps::registerOn($steps);

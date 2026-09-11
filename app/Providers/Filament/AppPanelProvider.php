@@ -24,6 +24,7 @@ use App\Http\Controllers\SyncUserTimezoneController;
 use App\Http\Middleware\ApplyTenantScopes;
 use App\Http\Middleware\CheckScheduledDeletion;
 use App\Http\Middleware\DenySearchIndexing;
+use App\Http\Middleware\EnsureAuthenticationComplete;
 use App\Http\Middleware\EnsureHostedWorkspaceAccess;
 use App\Listeners\SwitchTeam;
 use App\Livewire\App\AppDatabaseNotifications;
@@ -247,14 +248,21 @@ final class AppPanelProvider extends PanelProvider
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->readOnlyRelationManagersOnResourceViewPagesByDefault(false)
             ->spa()
-            ->routes(function (): void {
+            // The socialite entry points answer with a 302 to the provider's own
+            // domain, and wire:navigate cannot follow a cross-origin redirect.
+            ->spaUrlExceptions([
+                '*/auth/redirect/*',
+                '*/auth/link/redirect/*',
+                '*/auth/confirm/redirect/*',
+            ])
+            ->routes(function () use ($panel): void {
                 Route::get('/register', fn (): RedirectResponse => redirect()->to(Filament::getLoginUrl()))
                     ->name('auth.register');
                 Route::get('/scheduled-deletion', ScheduledDeletionInterstitial::class)
-                    ->middleware('auth')
+                    ->middleware($panel->getAuthMiddleware())
                     ->name('scheduled-deletion');
                 Route::post('/timezone', SyncUserTimezoneController::class)
-                    ->middleware('auth')
+                    ->middleware($panel->getAuthMiddleware())
                     ->name('timezone.sync');
 
                 Route::get('/{tenant}/tasks-board', fn (string $tenant) => redirect()->to(TaskResource::getUrl('board', ['tenant' => $tenant]), status: 301))
@@ -289,7 +297,11 @@ final class AppPanelProvider extends PanelProvider
             ->authPasswordBroker('users')
             ->authMiddleware([
                 Authenticate::class,
+                EnsureAuthenticationComplete::class,
                 CheckScheduledDeletion::class,
+            ])
+            ->persistentMiddleware([
+                EnsureAuthenticationComplete::class,
             ])
             ->tenantMiddleware(
                 [

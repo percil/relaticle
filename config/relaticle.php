@@ -12,6 +12,10 @@ return [
         'email' => env('CONTACT_EMAIL', 'admin@example.com'),
     ],
 
+    'enterprise' => [
+        'starting_price_yearly' => 20_000,
+    ],
+
     'company' => [
         'name' => env('RELATICLE_COMPANY_NAME', config('app.name')),
         'address' => env('RELATICLE_COMPANY_ADDRESS', ''),
@@ -80,10 +84,12 @@ return [
     ],
 
     'features' => [
+        'account_deletion' => (bool) env('RELATICLE_FEATURE_ACCOUNT_DELETION', false),
         'onboard_seed' => (bool) env('RELATICLE_FEATURE_ONBOARD_SEED', true),
         'social_auth' => (bool) env('RELATICLE_FEATURE_SOCIAL_AUTH', true),
         'documentation' => (bool) env('RELATICLE_FEATURE_DOCUMENTATION', true),
         'billing' => (bool) env('RELATICLE_FEATURE_BILLING', false),
+        'signup_challenge' => (bool) env('RELATICLE_FEATURE_SIGNUP_CHALLENGE', false),
         'support_menu' => (bool) env('RELATICLE_FEATURE_SUPPORT_MENU', false),
         'blog' => (bool) env('RELATICLE_FEATURE_BLOG', false),
     ],
