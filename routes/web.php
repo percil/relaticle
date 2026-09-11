@@ -2,16 +2,28 @@
 
 declare(strict_types=1);
 
+use App\Enums\Notifications\NotificationType;
 use App\Features\Documentation;
 use App\Features\SocialAuth;
 use App\Http\Controllers\AcceptTeamInvitationController;
 use App\Http\Controllers\AlternativesController;
 use App\Http\Controllers\Auth\CallbackController;
+use App\Http\Controllers\Auth\EmailChallengeController;
+use App\Http\Controllers\Auth\IdentityConfirmationCallbackController;
+use App\Http\Controllers\Auth\IdentityConfirmationMfaController;
+use App\Http\Controllers\Auth\IdentityConfirmationRedirectController;
+use App\Http\Controllers\Auth\LinkSocialAccountCallbackController;
+use App\Http\Controllers\Auth\LinkSocialAccountRedirectController;
+use App\Http\Controllers\Auth\MfaChallengeController;
 use App\Http\Controllers\Auth\RedirectController;
+use App\Http\Controllers\Auth\ResendEmailChallengeController;
+use App\Http\Controllers\Auth\VerifyEmailChallengeController;
 use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Dev\MailPreviewController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JoinTeamViaLinkController;
+use App\Http\Controllers\Mail\UnsubscribeController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\SwitchInvitationAccountController;
 use App\Http\Controllers\TermsOfServiceController;
@@ -47,12 +59,59 @@ Route::middleware('guest')->group(function () {
             ->middleware('throttle:10,1,socialite-callback');
     }
 
+    Route::post('/two-factor-challenge/cancel', [MfaChallengeController::class, 'destroy'])
+        ->name('two-factor.cancel');
+
     Route::get('/login', fn () => redirect()->to(url()->getAppUrl('login')))->name('login');
 
     Route::get('/register', fn () => redirect()->to(url()->getAppUrl('login')))->name('register');
 
     Route::get('/forgot-password', fn () => redirect()->to(url()->getAppUrl('forgot-password')))->name('password.request');
 });
+
+Route::middleware('auth')->group(function (): void {
+    if (Feature::active(SocialAuth::class)) {
+        // Confirmation intent, not login: a linked provider re-authenticated here
+        // proves current access to that identity for one sensitive operation.
+        // Distinct from the link routes below, which establish a new association.
+        Route::get('/auth/confirm/redirect/{provider}', IdentityConfirmationRedirectController::class)
+            ->name('auth.socialite.confirm.redirect')
+            ->middleware('throttle:10,1,socialite-confirm-redirect');
+        Route::get('/auth/confirm/callback/{provider}', IdentityConfirmationCallbackController::class)
+            ->name('auth.socialite.confirm.callback')
+            ->middleware('throttle:10,1,socialite-confirm-callback');
+
+        // Linking intent, unlike confirm above: establishes a brand-new
+        // association. Gated by password.confirm, then a fresh OAuth round trip.
+        Route::get('/auth/link/redirect/{provider}', LinkSocialAccountRedirectController::class)
+            ->name('auth.socialite.link.redirect')
+            ->middleware(['password.confirm', 'throttle:10,1,socialite-link-redirect']);
+        Route::get('/auth/link/callback/{provider}', LinkSocialAccountCallbackController::class)
+            ->name('auth.socialite.link.callback')
+            ->middleware('throttle:10,1,socialite-link-callback');
+    }
+
+    Route::get('/identity/confirm/mfa', [IdentityConfirmationMfaController::class, 'show'])
+        ->name('identity.confirm.mfa');
+
+    Route::post('/identity/confirm/mfa/cancel', [IdentityConfirmationMfaController::class, 'destroy'])
+        ->name('identity.confirm.mfa.cancel');
+
+    Route::post('/identity/confirm/mfa', [IdentityConfirmationMfaController::class, 'store'])
+        ->middleware('throttle:5,1,identity-confirm-mfa')
+        ->name('identity.confirm.mfa.store');
+});
+
+// Not nested under 'guest' or 'auth': the action enforces authentication per
+// purpose. No generic `throttle:` middleware: it keys by user id, not IP.
+Route::post('/auth/email-challenges', [EmailChallengeController::class, 'store'])
+    ->name('auth.email-challenges.store');
+
+Route::post('/auth/email-challenges/resend', ResendEmailChallengeController::class)
+    ->name('auth.email-challenges.resend');
+
+Route::post('/auth/email-challenges/verify', VerifyEmailChallengeController::class)
+    ->name('auth.email-challenges.verify');
 
 Route::get('/.well-known/security.txt', function (): Response {
     $lines = [
@@ -68,6 +127,16 @@ Route::get('/.well-known/security.txt', function (): Response {
     ]);
 })->name('securityTxt');
 
+Route::middleware(['signed', 'throttle:30,1,mail-unsubscribe', 'no-referrer'])->group(function (): void {
+    Route::get('/mail/unsubscribe/{user}/{type}', [UnsubscribeController::class, 'show'])
+        ->whereIn('type', [NotificationType::TaskDigest->value])
+        ->name('mail.unsubscribe');
+
+    Route::post('/mail/unsubscribe/{user}/{type}', [UnsubscribeController::class, 'store'])
+        ->whereIn('type', [NotificationType::TaskDigest->value])
+        ->name('mail.unsubscribe.store');
+});
+
 Route::middleware([ProvideMarkdownResponse::class, AddVaryAcceptHeader::class])->group(function (): void {
     Route::get('/', HomeController::class);
     Route::get('/terms-of-service', TermsOfServiceController::class)->name('terms.show');
@@ -75,6 +144,7 @@ Route::middleware([ProvideMarkdownResponse::class, AddVaryAcceptHeader::class])-
     Route::get('/pricing', fn () => view('pricing'))->name('pricing');
     Route::get('/press', fn () => view('press'))->name('press');
     Route::get('/ai', fn () => view('ai'))->name('ai');
+    Route::get('/ai-native-crm', fn () => view('ai-native-crm'))->name('aiNativeCrm');
     Route::get('/self-hosted', fn () => view('self-hosted'))->name('selfHosted');
     Route::get('/compare/relaticle-vs-{competitor}', [ComparisonController::class, 'show'])->name('compare.show');
     Route::get('/alternatives/{competitor}', [AlternativesController::class, 'show'])->name('alternatives.show');
@@ -151,3 +221,8 @@ if (Feature::active(Documentation::class)) {
 Route::get('/discord', function () {
     return redirect()->away(config('services.discord.invite_url'));
 })->name('discord');
+
+if (app()->environment('local')) {
+    Route::get('/dev/mail', [MailPreviewController::class, 'index'])->name('dev.mail.index');
+    Route::get('/dev/mail/{mail}', [MailPreviewController::class, 'show'])->name('dev.mail.show');
+}

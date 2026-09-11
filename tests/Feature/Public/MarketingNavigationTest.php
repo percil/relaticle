@@ -171,3 +171,9 @@ it('renders the works-with strip on the homepage with a link to the developer do
         ->and($strip)->toContain('href="'.route('documentation.index').'"')
         ->and($strip)->toContain('21,000+');
 });
+
+it('renders the homepage without the product hunt launch badge', function (): void {
+    $html = $this->get('/')->assertOk()->getContent();
+
+    expect($html)->not->toContain('producthunt.com', 'Product Hunt');
+});

@@ -20,6 +20,22 @@ Treat every change like it's going through senior code review:
   `->update(['used_at' => now()])`. The pgsql connection pins `'timezone' => 'UTC'` so the two
   agree today. Do not rely on that. It is the safety net, not the contract.
 
+## Dates
+
+- Dates are immutable application-wide. `AppServiceProvider::register()` calls
+  `Date::use(CarbonImmutable::class)`, so `now()`, `today()`, the `Date` facade, and
+  every `datetime` cast return `CarbonImmutable`
+- Never name the mutable `Carbon` class in code. `CarbonImmutable` does not extend it,
+  so a type hint becomes a TypeError and an `instanceof` check silently turns false.
+  `tests/Arch/ConventionsTest.php` fails on a bare `Carbon` anywhere in `app/`,
+  `packages/`, `database/`, or `tests/`
+- Type a date as `CarbonImmutable` when our own `Date::` factory or a model cast
+  produced it. Use `CarbonInterface` when a vendor may still hand you a mutable date
+- Build dates through `now()`, `today()`, or the `Date` facade. A hardcoded `Carbon::`
+  static call bypasses the factory, and `CarbonToDateFacadeRector` rewrites it
+- Steer the clock in tests with `$this->travelTo()`. `Carbon::setTestNow()` names the
+  mutable class, so `CarbonSetTestNowToTravelToRector` rewrites it
+
 ## Pre-Commit Quality Checks
 
 Before committing any changes, always run these checks in order:
@@ -65,6 +81,24 @@ Do not add new PHPStan ignores without approval. All parameters and return types
 - Environment-specific developer data belongs in `database/seeders/LocalSeeder.php`.
   Never put it behind an `app()->environment()` branch inside `app/Actions/` or
   other production code.
+
+## Comments
+
+Write code that needs no comment. In a finished diff, 90%+ of the code carries zero
+comments: names, small methods, and a test named for the behaviour say it all. A comment
+is the exception that admits the code could not.
+
+- A comment states only what code cannot: a non-obvious *why*, a magic value's source, or
+  a warning against a refactor that looks safe. Never what the code does.
+- Cap it at 2 lines. Longer rationale belongs in the PR body or the commit, not the file.
+- Never narrate the diff (`// added to fix X`), argue it (*without this*, *otherwise*,
+  *this ensures*), or carry traceability (ticket IDs, criterion tags). The reviewer reads
+  the PR; the next reader reads the code.
+- No comments in tests. The test name carries the intent.
+- Docblocks carry types, generics, and array shapes PHPStan cannot infer. Never prose.
+  This overrides the composed Boost PHP rule that prefers docblocks over inline comments.
+- Draft with comments if it helps you think. Before handing over the diff, re-read every
+  `//` you added and delete any the code already says.
 
 ## Scheduling
 
