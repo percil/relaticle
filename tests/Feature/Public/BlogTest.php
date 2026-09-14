@@ -98,7 +98,7 @@ describe('Blog pages', function () {
         // used to throw RouteNotFoundException and 500 the page for any logged-in user.
         $post = Post::factory()->create();
 
-        $this->actingAs(User::factory()->withPersonalTeam()->create())
+        $this->actingAs(User::factory()->withPersonalWorkspace()->create())
             ->get(URL::temporarySignedRoute('blog.preview', now()->addHour(), ['post' => $post]))
             ->assertStatus(200)
             ->assertSee($post->title);
