@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Relaticle\Chat\Tools\Opportunity;
 
 use App\Actions\Opportunity\CreateOpportunity;
+use App\Concerns\OperatesOnCrmEntity;
+use App\Enums\CrmEntity;
 use App\Models\Company;
 use App\Models\People;
 use App\Models\User;
@@ -13,6 +15,8 @@ use Relaticle\Chat\Tools\BaseWriteCreateTool;
 
 final class CreateOpportunityTool extends BaseWriteCreateTool
 {
+    use OperatesOnCrmEntity;
+
     public function description(): string
     {
         return 'Propose creating a new opportunity/deal. Optionally link to a company and primary contact.';
@@ -23,9 +27,9 @@ final class CreateOpportunityTool extends BaseWriteCreateTool
         return CreateOpportunity::class;
     }
 
-    protected function entityType(): string
+    protected function entity(): CrmEntity
     {
-        return 'opportunity';
+        return CrmEntity::Opportunity;
     }
 
     protected function ownedForeignKeys(): array
@@ -58,21 +62,21 @@ final class CreateOpportunityTool extends BaseWriteCreateTool
     {
         /** @var User $user */
         $user = auth()->user();
-        $team = $user->currentTeam;
+        $workspace = $user->currentWorkspace;
 
         $name = (string) ($record['name'] ?? '');
         $fields = [['label' => 'Name', 'value' => $name]];
 
         $companyId = $record['company_id'] ?? null;
         $companyId = is_string($companyId) && $companyId !== '' ? $companyId : null;
-        $companyName = $this->recordNames()->name($companyId, Company::class, $team);
+        $companyName = $this->recordNames()->name($companyId, Company::class, $workspace);
         if ($companyName !== '') {
             $fields[] = ['label' => 'Company', 'value' => $companyName];
         }
 
         $contactId = $record['contact_id'] ?? null;
         $contactId = is_string($contactId) && $contactId !== '' ? $contactId : null;
-        $contactName = $this->recordNames()->name($contactId, People::class, $team);
+        $contactName = $this->recordNames()->name($contactId, People::class, $workspace);
         if ($contactName !== '') {
             $fields[] = ['label' => 'Contact', 'value' => $contactName];
         }

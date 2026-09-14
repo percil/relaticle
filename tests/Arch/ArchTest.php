@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Filament\Exports\BaseExporter;
 use App\Filament\Imports\BaseImporter;
 use App\Filament\Pages\Import\ImportPage;
+use App\Http\Requests\Api\V1\BaseCrmEntityRequest;
+use App\Http\Requests\Api\V1\IndexCustomFieldsRequest;
+use App\Http\Requests\Api\V1\IndexRequest;
 use App\Livewire\BaseLivewireComponent;
 use App\Mcp\Tools\BaseAttachTool;
 use App\Mcp\Tools\BaseCreateTool;
@@ -15,7 +18,7 @@ use App\Mcp\Tools\BaseRelationshipTool;
 use App\Mcp\Tools\BaseShowTool;
 use App\Mcp\Tools\BaseUpdateTool;
 use App\Models\PersonalAccessToken;
-use App\Rules\ArrayExistsForTeam;
+use App\Rules\ArrayExistsForWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -39,7 +42,7 @@ arch()->preset()
         'App\Enums\CustomFields\CustomFieldTrait',
         'App\Mcp',
         'App\Http\Controllers\Mcp',
-        'App\Models\ActivityLog\Scopes\TeamScope',
+        'App\Models\ActivityLog\Scopes\WorkspaceScope',
         // Chat tools intentionally reuse App\Http\Resources (consistent
         // LLM-facing payloads); the preset forbids resources outside Http.
         'Relaticle\Chat',
@@ -65,6 +68,7 @@ arch('avoid open for extension')
         BaseAttachTool::class,
         BaseDetachTool::class,
         BaseRelationshipTool::class,
+        BaseCrmEntityRequest::class,
         ImportPage::class,
         PersonalAccessToken::class,
     ]);
@@ -86,6 +90,7 @@ arch('ensure no extends')
         BaseAttachTool::class,
         BaseDetachTool::class,
         BaseRelationshipTool::class,
+        BaseCrmEntityRequest::class,
         ImportPage::class,
     ]);
 
@@ -108,6 +113,10 @@ arch('avoid mutation')
         // extension point; PHP forbids a readonly class extending a
         // non-readonly one.
         'App\Http\Controllers\Billing\StripeWebhookController',
+        // Media library resolves this class itself, so it must extend the
+        // generator it replaces; PHP forbids a readonly class extending a
+        // non-readonly one.
+        'App\Support\SameOriginUrlGenerator',
         'App\Http\Requests',
         'App\Http\Resources',
         'App\Jobs',
@@ -138,7 +147,7 @@ arch('avoid mutation')
         'App\Services\Favicon\Drivers',
         'App\Providers\Filament',
         'App\Scribe',
-        ArrayExistsForTeam::class,
+        ArrayExistsForWorkspace::class,
     ]);
 
 arch('avoid inheritance')
@@ -157,6 +166,9 @@ arch('avoid inheritance')
         // Overrides Cashier's subscription-created handler so an abandoned
         // checkout does not consume the workspace's generic trial.
         'App\Http\Controllers\Billing\StripeWebhookController',
+        // Overrides the media library's URL generator, the documented seam for
+        // rewriting a media URL, so it must extend the default it replaces.
+        'App\Support\SameOriginUrlGenerator',
         'App\Http\Requests',
         'App\Http\Resources',
         'App\Jobs',
@@ -248,6 +260,16 @@ arch('SystemAdmin module must not depend on main app namespace')
         'App\Rules',
     ]);
 
+arch('CRM API write requests share the custom field contract')
+    ->expect('App\Http\Requests\Api\V1')
+    ->classes()
+    ->toExtend(BaseCrmEntityRequest::class)
+    ->ignoring([
+        BaseCrmEntityRequest::class,
+        IndexCustomFieldsRequest::class,
+        IndexRequest::class,
+    ]);
+
 arch('API controllers must not use Eloquent query methods directly')
     ->expect('App\Http\Controllers\Api\V1')
     ->not
@@ -321,7 +343,7 @@ arch('must not use custom-fields package models directly')
 // Livewire hands every client-invoked method through implicit route-model binding
 // (Wrapped::__call -> ImplicitlyBoundMethod), and Eloquent's resolveRouteBinding is
 // a bare where(key)->first(). A public method typed against a model therefore reads
-// whatever id the browser sends, ignoring team, owner and status. That is the shape
+// whatever id the browser sends, ignoring workspace, owner and status. That is the shape
 // let ProposalCard's dock reads return another tenant's proposal. Take the id as a
 // string and resolve it through a scoped query instead.
 //
@@ -329,15 +351,15 @@ arch('must not use custom-fields package models directly')
 // DirectlyCallingLifecycleHooksNotAllowedException before the call allowlist runs,
 // so mount() and friends are not client-callable.
 it('keeps Eloquent models off the client-callable surface of Livewire components', function (): void {
-    // Verified safe (2026-08-25): each passes the client-supplied team straight to an
-    // action that authorizes the ACTING user against THAT team, and returns void.
+    // Verified safe (2026-08-25): each passes the client-supplied workspace straight to an
+    // action that authorizes the ACTING user against THAT workspace, and returns void.
     $grandfathered = [
-        'App\Livewire\App\Teams\DeleteTeam::cancelTeamDeletion',
-        'App\Livewire\App\Teams\DeleteTeam::deleteTeam',
-        'App\Livewire\App\Teams\TeamMembers::leaveTeam',
-        'App\Livewire\App\Teams\TeamMembers::removeTeamMember',
-        'App\Livewire\App\Teams\TeamMembers::updateTeamRole',
-        'App\Livewire\App\Teams\UpdateTeamName::updateTeamName',
+        'App\Livewire\App\Workspaces\DeleteWorkspace::cancelWorkspaceDeletion',
+        'App\Livewire\App\Workspaces\DeleteWorkspace::deleteWorkspace',
+        'App\Livewire\App\Workspaces\WorkspaceMembers::leaveWorkspace',
+        'App\Livewire\App\Workspaces\WorkspaceMembers::removeWorkspaceMember',
+        'App\Livewire\App\Workspaces\WorkspaceMembers::updateWorkspaceRole',
+        'App\Livewire\App\Workspaces\UpdateWorkspaceName::updateWorkspaceName',
     ];
 
     $lifecycle = ['mount', 'boot', 'booted', 'exception', 'rendering', 'rendered', 'scriptSrc', 'hydrate', 'dehydrate', 'updating', 'updated', 'render'];

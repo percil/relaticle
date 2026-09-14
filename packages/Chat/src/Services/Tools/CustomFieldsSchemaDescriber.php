@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Relaticle\Chat\Services\Tools;
 
+use App\Enums\CustomFieldType;
 use App\Models\CustomField;
-use App\Models\Team;
+use App\Models\Workspace;
 use Relaticle\Chat\Support\PromptText;
 use Relaticle\CustomFields\Enums\FieldDataType;
 use Relaticle\CustomFields\Facades\CustomFieldsType;
@@ -19,11 +20,11 @@ final readonly class CustomFieldsSchemaDescriber
      * schema slot. The LLM sees this string and uses it to pick valid codes
      * and value shapes without a separate discovery round-trip.
      */
-    public function describe(Team $team, string $entityType): string
+    public function describe(Workspace $workspace, string $entityType): string
     {
         $fields = CustomField::query()
             ->withoutGlobalScope(CustomFieldsActivableScope::class)
-            ->where('tenant_id', $team->getKey())
+            ->where('tenant_id', $workspace->getKey())
             ->where('entity_type', $entityType)
             ->orderByDesc('active')
             ->orderBy('code')
@@ -109,7 +110,7 @@ final readonly class CustomFieldsSchemaDescriber
             FieldDataType::DATE_TIME => 'date-time',
             FieldDataType::BOOLEAN => 'boolean',
             FieldDataType::SINGLE_CHOICE => 'single-choice',
-            FieldDataType::MULTI_CHOICE => 'multi-choice',
+            FieldDataType::MULTI_CHOICE => $rawType === CustomFieldType::RECORD->value ? 'record' : 'multi-choice',
             FieldDataType::FILE => 'file (read-only via chat)',
             null => $rawType,
         };
@@ -120,8 +121,13 @@ final readonly class CustomFieldsSchemaDescriber
         return match ($dataType) {
             FieldDataType::DATE => 'YYYY-MM-DD',
             FieldDataType::DATE_TIME => 'ISO 8601, e.g. "2026-05-20T14:00:00Z"',
-            FieldDataType::TEXT => 'plain text is fine, will be wrapped as HTML on save',
-            FieldDataType::MULTI_CHOICE => 'array of label strings',
+            FieldDataType::TEXT => match ($rawType) {
+                'rich-editor' => 'markdown, or HTML when the value starts with <; stored as HTML',
+                default => null,
+            },
+            FieldDataType::MULTI_CHOICE => $rawType === CustomFieldType::RECORD->value
+                ? 'array of record IDs of the lookup entity; records must belong to this workspace'
+                : 'array of option labels or IDs',
             default => match ($rawType) {
                 'email' => 'array of email strings',
                 'phone' => 'array of phone strings',

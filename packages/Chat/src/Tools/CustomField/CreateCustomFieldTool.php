@@ -43,7 +43,7 @@ final class CreateCustomFieldTool implements Tool
                 ->description('The display name for the field (e.g. "Industry", "Priority"). Max 50 characters, and must not match an existing field on the same entity.')
                 ->required(),
             'type' => $schema->string()
-                ->description("The field type. Allowed: {$allowedTypes}. NOT allowed: file-upload, record, rich-editor, markdown-editor, currency.")
+                ->description("The field type. Allowed: {$allowedTypes}. NOT allowed: file-upload, record, rich-editor, currency.")
                 ->required(),
             'code' => $schema->string()
                 ->description('Optional machine-readable code (snake_case). Auto-generated from name if omitted.'),
@@ -60,9 +60,9 @@ final class CreateCustomFieldTool implements Tool
         /** @var User $user */
         $user = auth()->user();
 
-        if (! $user->ownsTeam($user->currentTeam)) {
+        if (! $user->ownsWorkspace($user->currentWorkspace)) {
             return (string) json_encode([
-                'error' => 'Only team owners can create custom field definitions. I can guide you to the Custom Fields settings page if you want to ask your team owner to do this.',
+                'error' => 'Only workspace owners can create custom field definitions. I can guide you to the Custom Fields settings page if you want to ask your workspace owner to do this.',
             ], JSON_UNESCAPED_SLASHES);
         }
 

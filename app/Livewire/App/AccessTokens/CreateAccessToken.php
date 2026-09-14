@@ -27,12 +27,23 @@ final class CreateAccessToken extends BaseLivewireComponent
 
     public ?string $plainTextToken = null;
 
+    private const string DEFAULT_EXPIRATION_DAYS = '180';
+
     public function mount(): void
     {
-        $this->form->fill([
-            'team_id' => $this->authUser()->currentTeam?->getKey(),
+        $this->form->fill($this->initialFormState());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function initialFormState(): array
+    {
+        return [
+            'workspace_id' => $this->authUser()->currentWorkspace?->getKey(),
             'permissions' => Jetstream::$defaultPermissions,
-        ]);
+            'expiration' => self::DEFAULT_EXPIRATION_DAYS,
+        ];
     }
 
     public function form(Schema $schema): Schema
@@ -40,7 +51,6 @@ final class CreateAccessToken extends BaseLivewireComponent
         return $schema
             ->schema([
                 Section::make(__('access-tokens.sections.create.title'))
-                    ->aside()
                     ->description(
                         __('access-tokens.sections.create.description'),
                     )
@@ -60,11 +70,11 @@ final class CreateAccessToken extends BaseLivewireComponent
                                         $this->authUser()->getKey(),
                                     ),
                             ]),
-                        Select::make('team_id')
-                            ->label(__('access-tokens.form.team'))
+                        Select::make('workspace_id')
+                            ->label(__('access-tokens.form.workspace'))
                             ->required()
                             ->options(
-                                $this->authUser()->allTeams()->pluck('name', 'id'),
+                                $this->authUser()->allWorkspaces()->pluck('name', 'id'),
                             ),
                         Select::make('expiration')
                             ->label(__('access-tokens.form.expiration'))
@@ -132,10 +142,10 @@ final class CreateAccessToken extends BaseLivewireComponent
         $state = $this->form->getState();
 
         $user = $this->authUser();
-        $teamId = $state['team_id'];
+        $workspaceId = $state['workspace_id'];
 
-        if ($user->allTeams()->doesntContain('id', $teamId)) {
-            $this->sendNotification(title: 'You do not belong to this team.', type: 'danger');
+        if ($user->allWorkspaces()->doesntContain('id', $workspaceId)) {
+            $this->sendNotification(title: 'You do not belong to this workspace.', type: 'danger');
 
             return;
         }
@@ -144,7 +154,7 @@ final class CreateAccessToken extends BaseLivewireComponent
         $expiresAt = $expiration > 0 ? now()->addDays($expiration) : null;
 
         /** @var NewAccessToken $token */
-        $token = DB::transaction(function () use ($user, $state, $teamId, $expiresAt): NewAccessToken {
+        $token = DB::transaction(function () use ($user, $state, $workspaceId, $expiresAt): NewAccessToken {
             $token = $user->createToken(
                 $state['name'],
                 Jetstream::validPermissions($state['permissions'] ?? []),
@@ -152,7 +162,7 @@ final class CreateAccessToken extends BaseLivewireComponent
 
             // Sanctum's createToken() does not accept extra attributes, so we update after creation
             $token->accessToken->fill([
-                'team_id' => $teamId,
+                'workspace_id' => $workspaceId,
                 'expires_at' => $expiresAt,
             ])->save();
 
@@ -161,10 +171,7 @@ final class CreateAccessToken extends BaseLivewireComponent
 
         $this->plainTextToken = explode('|', $token->plainTextToken, 2)[1];
 
-        $this->form->fill([
-            'team_id' => $user->currentTeam?->getKey(),
-            'permissions' => Jetstream::$defaultPermissions,
-        ]);
+        $this->form->fill($this->initialFormState());
 
         $this->dispatch('tokenCreated');
 

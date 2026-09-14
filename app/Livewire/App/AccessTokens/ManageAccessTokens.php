@@ -33,17 +33,19 @@ final class ManageAccessTokens extends BaseLivewireComponent implements HasTable
         $user = $this->authUser();
 
         return $table
+            ->heading(__('access-tokens.sections.manage.title'))
+            ->description(__('access-tokens.sections.manage.description'))
             ->query(
                 fn (): Builder => PersonalAccessToken::query()
-                    ->with('team')
+                    ->with('workspace')
                     ->where('tokenable_type', $user->getMorphClass())
                     ->where('tokenable_id', $user->getKey()),
             )
             ->columns([
                 TextColumn::make('name')->label(__('access-tokens.table.columns.name'))->searchable(),
-                TextColumn::make('team.name')
-                    ->label(__('access-tokens.table.columns.team'))
-                    ->placeholder(__('access-tokens.table.placeholders.no_team')),
+                TextColumn::make('workspace.name')
+                    ->label(__('access-tokens.table.columns.workspace'))
+                    ->placeholder(__('access-tokens.table.placeholders.no_workspace')),
                 TextColumn::make('abilities')
                     ->label(__('access-tokens.table.columns.abilities'))
                     ->badge()

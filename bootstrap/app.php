@@ -9,7 +9,7 @@ use App\Http\Middleware\NoReferrer;
 use App\Http\Middleware\RedirectToPrimaryHost;
 use App\Http\Middleware\RequireIdentityConfirmation;
 use App\Http\Middleware\RequireOperationGrant;
-use App\Http\Middleware\SetApiTeamContext;
+use App\Http\Middleware\SetApiWorkspaceContext;
 use App\Http\Middleware\SubdomainRootResponse;
 use App\Http\Middleware\ThrottleBeforeAuthentication;
 use App\Http\Middleware\ValidateSignature;
@@ -19,10 +19,12 @@ use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
+use Livewire\Exceptions\PayloadTooLargeException;
 use Livewire\Mechanisms\HandleComponents\CorruptComponentPayloadException;
 use Sentry\Laravel\Integration;
 use Spatie\Health\Commands\DispatchQueueCheckJobsCommand;
@@ -122,7 +124,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
-            prepend: SetApiTeamContext::class,
+            prepend: SetApiWorkspaceContext::class,
         );
 
         // Textual order in a route's middleware array does not decide execution
@@ -158,7 +160,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // The login page's signup branch handles both an invited email that
             // already has an account and one that does not, from the same URL,
             // and a shared join link carries no email to tell them apart with.
-            if ($request->routeIs('team-invitations.token.accept', 'teams.join')) {
+            if ($request->routeIs('workspace-invitations.token.accept', 'workspaces.join')) {
                 return Filament::getLoginUrl();
             }
 
@@ -174,6 +176,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // They are user-state noise, not actionable errors, so keep them out of
         // Sentry (issue #125406836).
         $exceptions->dontReport(CorruptComponentPayloadException::class);
+
+        // Livewire rejects an oversized body before the component hydrates, so the panel
+        // cannot notify from the server; payload-guard.js turns this into a notification
+        // instead of the full-screen error overlay.
+        $exceptions->render(function (PayloadTooLargeException $e, Request $request): ?JsonResponse {
+            if (! $request->hasHeader('X-Livewire')) {
+                return null;
+            }
+
+            return response()->json(['message' => __('filament/panel.payload_too_large')], 413);
+        });
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('import:cleanup')->hourly();

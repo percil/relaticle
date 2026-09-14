@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Relaticle\Chat\Services;
 
-use App\Models\CustomField;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Relaticle\Chat\Enums\PendingActionOperation;
 use Relaticle\Chat\Enums\PendingActionStatus;
@@ -16,9 +14,7 @@ use Relaticle\Chat\Services\Tools\ProposalDisplayBuilder;
 use Relaticle\Chat\Support\ProposalCoreFields;
 use Relaticle\Chat\Support\ProposalOwnership;
 use Relaticle\Chat\Support\ProposalPayload;
-use Relaticle\Chat\Support\TeamMembersContext;
-use Relaticle\CustomFields\Enums\FieldDataType;
-use Relaticle\CustomFields\Facades\CustomFieldsType;
+use Relaticle\Chat\Support\WorkspaceMembersContext;
 use Relaticle\CustomFields\Services\TenantContextService;
 use RuntimeException;
 
@@ -45,12 +41,12 @@ final readonly class ProposalEditor
     public function applyEdit(PendingAction $pendingAction, User $user, array $input, ?int $index = null): PendingAction
     {
         // Before the pin below, not after: this method validates core fields
-        // against the actor's team while writing custom fields under the
+        // against the actor's workspace while writing custom fields under the
         // proposal's, so a cross-tenant caller would split one record in two.
         ProposalOwnership::assert($pendingAction, $user);
 
         $previousTenantId = TenantContextService::getCurrentTenantId();
-        TenantContextService::setTenantId($pendingAction->team_id);
+        TenantContextService::setTenantId($pendingAction->workspace_id);
 
         try {
             return DB::transaction(function () use ($pendingAction, $user, $input, $index): PendingAction {
@@ -126,18 +122,13 @@ final readonly class ProposalEditor
         }
 
         if ($entityType === 'company' && array_key_exists('account_owner_id', $editedCore)) {
-            $error = TeamMembersContext::memberFieldError($user, 'account_owner_id', $editedCore['account_owner_id']);
+            $error = WorkspaceMembersContext::memberFieldError($user, 'account_owner_id', $editedCore['account_owner_id']);
 
             throw_if($error !== null, RuntimeException::class, (string) $error);
         }
     }
 
     /**
-     * Validate the edited custom fields through the shared request validator.
-     * Per the locked choice ID↔label contract, incoming choice option IDs are
-     * converted back to labels first, because the validator re-translates
-     * labels → IDs and applies the configured rules.
-     *
      * @param  array<string, mixed>  $editedCustomFields
      * @return array<string, mixed>
      */
@@ -147,105 +138,11 @@ final readonly class ProposalEditor
             return [];
         }
 
-        $fields = CustomField::query()
-            ->where('tenant_id', $user->currentTeam->getKey())
-            ->where('entity_type', $entityType)
-            ->active()
-            ->whereIn('code', array_keys($editedCustomFields))
-            ->with('options')
-            ->get();
-
-        $converted = $this->convertChoiceIdsToLabels($editedCustomFields, $fields);
-
-        $result = $this->customFieldsValidator->validate($user, $entityType, $converted);
+        $result = $this->customFieldsValidator->validate($user, $entityType, $editedCustomFields);
 
         throw_if($result->error !== null, RuntimeException::class, (string) $result->error);
 
         return $result->cleanFields;
-    }
-
-    /**
-     * Convert incoming choice option IDs to labels for SELECT/MULTI_SELECT
-     * fields. Non-choice values (link arrays, text, number, bool, date) and
-     * lookup-backed choices pass through unchanged. An ID that matches no
-     * option is left as-is so the downstream validator rejects it.
-     *
-     * @param  array<string, mixed>  $raw
-     * @param  Collection<int, CustomField>  $fields
-     * @return array<string, mixed>
-     */
-    private function convertChoiceIdsToLabels(array $raw, Collection $fields): array
-    {
-        $byCode = $fields->keyBy('code');
-        $converted = [];
-
-        foreach ($raw as $code => $value) {
-            $field = $byCode->get($code);
-
-            if (! $field instanceof CustomField) {
-                $converted[$code] = $value;
-
-                continue;
-            }
-
-            $typeData = CustomFieldsType::getFieldType($field->type);
-            $dataType = $typeData?->dataType;
-
-            if ($dataType === null
-                || ! $dataType->isChoiceField()
-                || $typeData->acceptsArbitraryValues
-                || $field->lookup_type !== null) {
-                $converted[$code] = $value;
-
-                continue;
-            }
-
-            $labelById = $this->optionLabelsById($field);
-
-            $converted[$code] = $dataType === FieldDataType::MULTI_CHOICE
-                ? $this->idsToLabels($value, $labelById)
-                : $this->idToLabel($value, $labelById);
-        }
-
-        return $converted;
-    }
-
-    /**
-     * @return array<int|string, string>
-     */
-    private function optionLabelsById(CustomField $field): array
-    {
-        $map = [];
-
-        foreach ($field->options as $option) {
-            $map[(string) $option->id] = (string) $option->name;
-        }
-
-        return $map;
-    }
-
-    /**
-     * @param  array<int|string, string>  $labelById
-     */
-    private function idToLabel(mixed $value, array $labelById): mixed
-    {
-        if (! is_string($value) && ! is_int($value)) {
-            return $value;
-        }
-
-        return $labelById[(string) $value] ?? $value;
-    }
-
-    /**
-     * @param  array<int|string, string>  $labelById
-     */
-    private function idsToLabels(mixed $value, array $labelById): mixed
-    {
-        if (! is_array($value)) {
-            return $value;
-        }
-
-        return array_map(fn (mixed $item): mixed => $this->idToLabel($item, $labelById), $value);
     }
 
     /**

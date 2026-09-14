@@ -21,7 +21,6 @@ final readonly class CustomFieldFilterSchema
         CustomFieldType::RECORD->value,
         CustomFieldType::TEXTAREA->value,
         CustomFieldType::RICH_EDITOR->value,
-        CustomFieldType::MARKDOWN_EDITOR->value,
     ];
 
     /** @var array<int, string> */
@@ -119,13 +118,13 @@ final readonly class CustomFieldFilterSchema
      */
     private function resolveFilterableFields(User $user, string $entityType): Collection
     {
-        $teamId = $user->currentTeam->getKey();
-        $cacheKey = McpSchemaCache::filterSchemaKey($teamId, $entityType);
+        $workspaceId = $user->currentWorkspace->getKey();
+        $cacheKey = McpSchemaCache::filterSchemaKey($workspaceId, $entityType);
 
         /** @var Collection<int, CustomField> */
         return Cache::remember($cacheKey, McpSchemaCache::TTL, fn (): Collection => CustomField::query()
             ->withoutGlobalScopes()
-            ->where('tenant_id', $teamId)
+            ->where('tenant_id', $workspaceId)
             ->where('entity_type', $entityType)
             ->whereNotIn('type', self::EXCLUDED_TYPES)
             ->where(fn (Builder $q) => $q->whereNull('settings->encrypted')->orWhere('settings->encrypted', false))

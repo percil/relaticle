@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Relaticle\Chat\Tools\Task;
 
 use App\Actions\Task\UpdateTask;
+use App\Concerns\OperatesOnCrmEntity;
+use App\Enums\CrmEntity;
 use App\Models\Company;
 use App\Models\Opportunity;
 use App\Models\People;
@@ -13,42 +15,28 @@ use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Ai\Tools\Request;
-use Relaticle\Chat\Support\TeamMembersContext;
+use Relaticle\Chat\Support\WorkspaceMembersContext;
 use Relaticle\Chat\Tools\BaseWriteUpdateTool;
 use Relaticle\Chat\Tools\Concerns\NormalizesToolInput;
 
 final class UpdateTaskTool extends BaseWriteUpdateTool
 {
     use NormalizesToolInput;
+    use OperatesOnCrmEntity;
 
     public function description(): string
     {
         return 'Propose updating an existing task. Returns a proposal for user approval.';
     }
 
-    protected function modelClass(): string
+    protected function entity(): CrmEntity
     {
-        return Task::class;
+        return CrmEntity::Task;
     }
 
     protected function actionClass(): string
     {
         return UpdateTask::class;
-    }
-
-    protected function entityType(): string
-    {
-        return 'task';
-    }
-
-    protected function entityLabel(): string
-    {
-        return 'Task';
-    }
-
-    protected function nameAttribute(): string
-    {
-        return 'title';
     }
 
     protected function ownedForeignKeyLists(): array
@@ -73,7 +61,7 @@ final class UpdateTaskTool extends BaseWriteUpdateTool
 
     protected function validateRequest(Request $request, User $user): ?string
     {
-        return TeamMembersContext::memberFieldError($user, 'assignee_ids', $request['assignee_ids'] ?? null);
+        return WorkspaceMembersContext::memberFieldError($user, 'assignee_ids', $request['assignee_ids'] ?? null);
     }
 
     protected function extractActionData(Request $request): array
@@ -101,7 +89,7 @@ final class UpdateTaskTool extends BaseWriteUpdateTool
 
         /** @var User $user */
         $user = auth()->user();
-        $team = $user->currentTeam;
+        $workspace = $user->currentWorkspace;
         $payload = $request->all();
 
         $fields = [];
@@ -110,9 +98,9 @@ final class UpdateTaskTool extends BaseWriteUpdateTool
         }
 
         foreach ([
-            ['people_ids', 'Linked people', 'people', People::class, $team],
-            ['company_ids', 'Linked companies', 'companies', Company::class, $team],
-            ['opportunity_ids', 'Linked opportunities', 'opportunities', Opportunity::class, $team],
+            ['people_ids', 'Linked people', 'people', People::class, $workspace],
+            ['company_ids', 'Linked companies', 'companies', Company::class, $workspace],
+            ['opportunity_ids', 'Linked opportunities', 'opportunities', Opportunity::class, $workspace],
             ['assignee_ids', 'Assignees', 'assignees', User::class, null],
         ] as [$key, $label, $relation, $modelClass, $scope]) {
             $ids = $this->idListOrNull($request, $key);

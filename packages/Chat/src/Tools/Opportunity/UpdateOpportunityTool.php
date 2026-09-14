@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Relaticle\Chat\Tools\Opportunity;
 
 use App\Actions\Opportunity\UpdateOpportunity;
+use App\Concerns\OperatesOnCrmEntity;
+use App\Enums\CrmEntity;
 use App\Models\Company;
-use App\Models\Opportunity;
 use App\Models\People;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -16,29 +17,21 @@ use Relaticle\Chat\Tools\BaseWriteUpdateTool;
 
 final class UpdateOpportunityTool extends BaseWriteUpdateTool
 {
+    use OperatesOnCrmEntity;
+
     public function description(): string
     {
         return 'Propose updating an existing opportunity/deal, including its linked company and primary contact.';
     }
 
-    protected function modelClass(): string
+    protected function entity(): CrmEntity
     {
-        return Opportunity::class;
+        return CrmEntity::Opportunity;
     }
 
     protected function actionClass(): string
     {
         return UpdateOpportunity::class;
-    }
-
-    protected function entityType(): string
-    {
-        return 'opportunity';
-    }
-
-    protected function entityLabel(): string
-    {
-        return 'Opportunity';
     }
 
     protected function ownedForeignKeys(): array
@@ -75,7 +68,7 @@ final class UpdateOpportunityTool extends BaseWriteUpdateTool
     {
         /** @var User $user */
         $user = auth()->user();
-        $team = $user->currentTeam;
+        $workspace = $user->currentWorkspace;
 
         $fields = [];
 
@@ -91,8 +84,8 @@ final class UpdateOpportunityTool extends BaseWriteUpdateTool
             $newCompanyId = $this->stringOrNull($request, 'company_id');
             $fields[] = [
                 'label' => 'Company',
-                'old' => $this->recordNames()->name($model->getAttribute('company_id'), Company::class, $team),
-                'new' => $newCompanyId === null ? __('(none)') : $this->recordNames()->name($newCompanyId, Company::class, $team),
+                'old' => $this->recordNames()->name($model->getAttribute('company_id'), Company::class, $workspace),
+                'new' => $newCompanyId === null ? __('(none)') : $this->recordNames()->name($newCompanyId, Company::class, $workspace),
                 '_oldValue' => $model->getAttribute('company_id'),
                 '_newValue' => $newCompanyId,
             ];
@@ -102,8 +95,8 @@ final class UpdateOpportunityTool extends BaseWriteUpdateTool
             $newContactId = $this->stringOrNull($request, 'contact_id');
             $fields[] = [
                 'label' => 'Contact',
-                'old' => $this->recordNames()->name($model->getAttribute('contact_id'), People::class, $team),
-                'new' => $newContactId === null ? __('(none)') : $this->recordNames()->name($newContactId, People::class, $team),
+                'old' => $this->recordNames()->name($model->getAttribute('contact_id'), People::class, $workspace),
+                'new' => $newContactId === null ? __('(none)') : $this->recordNames()->name($newContactId, People::class, $workspace),
                 '_oldValue' => $model->getAttribute('contact_id'),
                 '_newValue' => $newContactId,
             ];
