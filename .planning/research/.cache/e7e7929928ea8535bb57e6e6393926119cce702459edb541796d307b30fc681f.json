@@ -1,0 +1,1 @@
+{"content":"Laravel Reverb behind nginx needs HTTP/1.1, Upgrade/Connection headers set to upgrade, no buffering, proxy_pass to internal Reverb port (typically 8080); Reverb should never be exposed directly to the internet.","source":"web","provider":"websearch","confidence":"MEDIUM","fetched_at":"2026-09-03T08:36:49.855Z","ttl":86400000,"kind":"web"}
