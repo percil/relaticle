@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-03)
 Phase: Milestone v1.0 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-11 - Completed quick task 260911-nxv: Verified Ollama Cloud availability in dev and prod deployments; repointed compose.yml to percil/relaticle:latest. Local relaticle stack is down pending a v* tag push.
+Last activity: 2026-09-14 - Completed quick task 260914-mjn: Fixed GitHub Actions triggers so Tests, Warm Caches, and Docker Build+Push run on pushes to development, this fork's real default branch (they were previously hardcoded to main, so the fork had zero workflow runs ever).
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ None yet.
 | 260904-fks | Reduce docker-publish.yml to Docker Hub-only, tag-triggered publish to percil/relaticle | 2026-09-04 | 5cf1e560 | [260904-fks-update-github-workflows-docker-publish-y](./quick/260904-fks-update-github-workflows-docker-publish-y/) |
 | 260911-mrc | Forked branch updated from origin. Check that everything is aligned and working. | 2026-09-11 | 2d179ac8 | [260911-mrc-forked-branch-updated-from-origin-check-](./quick/260911-mrc-forked-branch-updated-from-origin-check-/) |
 | 260911-nxv | Verify Ollama Cloud is available from the default dev and prod deployments | 2026-09-11 | ec564935 | [260911-nxv-forked-branch-updated-from-origin-check-](./quick/260911-nxv-forked-branch-updated-from-origin-check-/) |
+| 260914-mjn | Fix GitHub Actions triggers so Tests, Warm Caches, and Docker Build+Push run on pushes to development (the fork's real default branch) | 2026-09-14 | 8453c35d | [260914-mjn-fix-github-actions-triggers-so-tests-war](./quick/260914-mjn-fix-github-actions-triggers-so-tests-war/) |
 
 ### Roadmap Evolution
 
