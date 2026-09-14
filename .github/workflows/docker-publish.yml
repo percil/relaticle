@@ -3,6 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     tags: ['v*']
+    branches: [development]
   pull_request:
     branches: [main]
 
@@ -64,6 +65,7 @@ jobs:
           tags: |
             type=semver,pattern={{raw}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/development' }}
 
       - name: Build and push by digest
         id: build
@@ -137,6 +139,7 @@ jobs:
           tags: |
             type=semver,pattern={{raw}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/development' }}
 
       - name: Create manifest list and push to Docker Hub
         working-directory: ${{ runner.temp }}/digests

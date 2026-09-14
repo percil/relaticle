@@ -1,7 +1,7 @@
 name: CI
 
 # The single definition of how this project is verified. Called by tests.yml on
-# pull requests and pushes to main, and by deploy.yml before a release deploys.
+# pull requests and branch pushes, and by deploy.yml before a release deploys.
 # Both paths run the same jobs, so a hardening fix can no longer land on one and
 # miss the other.
 

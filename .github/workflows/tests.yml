@@ -3,14 +3,14 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, development]
 
 # A new push to the same PR makes the in-flight run obsolete, so cancel it and the
 # runners go to the newest commit instead of finishing work nobody will read.
 #
-# Pushes to main get a group per commit. A shared group holds one in-progress run
+# Pushes to a tracked branch get a group per commit. A shared group holds one in-progress run
 # and one pending run, and cancels the pending one when a third arrives, so a burst
-# of merges would leave middle commits with no verdict and no refreshed main-scoped
+# of merges would leave middle commits with no verdict and no refreshed branch-scoped
 # cache for release runs to restore from.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
