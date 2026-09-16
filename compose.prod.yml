@@ -1,0 +1,294 @@
+# Production variant for Percil Solutions SRL's own deployment (crm.percil.be /
+# ws.crm.percil.be, Hetzner + Caddy). Differs from the upstream compose.yml in one
+# way: PostgreSQL runs on the HOST machine, not as a container.
+#
+# Before `docker compose -f compose.prod.yml up -d`:
+#
+# 1. Create the database and role on the host's own PostgreSQL yourself (nothing
+#    in this file does it for you, unlike the removed `postgres` service):
+#      sudo -u postgres psql -c "CREATE ROLE relaticle LOGIN PASSWORD '<DB_PASSWORD>';"
+#      sudo -u postgres psql -c "CREATE DATABASE relaticle OWNER relaticle;"
+#
+# 2. Let the containers reach it. Docker's default bridge network is not on
+#    127.0.0.1, so a Postgres listening only on localhost is unreachable from the
+#    app/horizon/scheduler containers:
+#      - postgresql.conf: listen_addresses = '*' (or add the docker bridge subnet
+#        explicitly; find it with `docker network inspect bridge`)
+#      - pg_hba.conf: allow the docker bridge subnet specifically (e.g.
+#        `172.17.0.0/16`), never `0.0.0.0/0` — this host must not accept Postgres
+#        connections from the public internet. Confirm your cloud firewall also
+#        keeps 5432 closed to the internet; it should already, since only 80/443
+#        are open for Caddy.
+#      - restart postgresql after editing both files.
+#
+# 3. Set DB_HOST=host.docker.internal in .env (or leave the default below). The
+#    `extra_hosts` entries on app/horizon/scheduler are what make that hostname
+#    resolve to the host machine on Linux Docker Engine — Docker Desktop maps it
+#    automatically, a plain Linux Engine (what a Hetzner box runs) does not,
+#    without this explicit `host-gateway` mapping.
+#
+# Two of the requirements this deployment also needs are NOT compose-file
+# concerns and are handled elsewhere:
+#
+# - Blocking search-engine/AI crawling: the image ships a permissive
+#   public/robots.txt baked in (allows everything, including GPTBot/ClaudeBot/
+#   Google-Extended) and it isn't env-configurable or on a mounted volume, so it
+#   can't be overridden here. Do it at the Caddy layer instead, in the same site
+#   block that proxies to this stack:
+#     handle /robots.txt {
+#         header Content-Type text/plain
+#         respond "User-agent: *\nDisallow: /" 200
+#     }
+#     header X-Robots-Tag "noindex, nofollow, noarchive"
+#
+# - No account creation outside `docker compose exec`: already true by default.
+#   `/register` and Filament's own registration route both redirect to /login,
+#   and the app panel has no `->registration()` wired up. The only creation
+#   paths are `docker compose exec app php artisan make:filament-user` /
+#   `sysadmin:create`, and an existing member sending a workspace invitation.
+#   There is no feature flag to disable invitations; if you never invite
+#   anyone else, this requirement holds without any further change.
+
+services:
+  app:
+    image: percil/relaticle:latest
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      APP_NAME: ${APP_NAME:-Relaticle}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_PANEL_DOMAIN: ${APP_PANEL_DOMAIN:-}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-relaticle}
+      DB_USERNAME: ${DB_USERNAME:-relaticle}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Relaticle}
+      # AI chat providers. Optional: a self-hoster may run the CRM without any
+      # chat provider configured. Each is a plain passthrough of the operator's
+      # own .env value; docker compose never injects a var that is not an
+      # explicit key here, no matter what is set in .env.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+      # Browser-facing Reverb address (what the panel renders into the page).
+      # Independently configurable from the internal family above so a
+      # reverse-proxied self-hoster can terminate TLS on the public socket.
+      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-reverb}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
+      REVERB_HOST: ${REVERB_HOST:-localhost}
+      REVERB_PORT: ${REVERB_PORT:-8080}
+      REVERB_SCHEME: ${REVERB_SCHEME:-http}
+      # serversideup/php Laravel automations
+      AUTORUN_ENABLED: "true"
+      AUTORUN_LARAVEL_MIGRATION: "true"
+      AUTORUN_LARAVEL_MIGRATION_ISOLATION: "true"
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  horizon:
+    image: percil/relaticle:latest
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "horizon"]
+    stop_signal: SIGTERM
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      APP_NAME: ${APP_NAME:-Relaticle}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_PANEL_DOMAIN: ${APP_PANEL_DOMAIN:-}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-relaticle}
+      DB_USERNAME: ${DB_USERNAME:-relaticle}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      # AI chat providers. Queued chat jobs (ProcessChatMessage et al.) run in
+      # THIS container, so it needs these directly, not just app. See the app
+      # service's comment for why each needs its own explicit entry here.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_CLOUD_API_KEY: ${OLLAMA_CLOUD_API_KEY:-}
+      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com}
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+      # Chat streaming events implement ShouldBroadcastNow and are dispatched
+      # from queued jobs (ProcessChatMessage et al.), which run in THIS
+      # container. Without these, broadcasting.default resolves to "null"
+      # here and every chat broadcast silently no-ops.
+      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-reverb}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
+      # Disable automations for worker container
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-horizon"]
+      start_period: 10s
+
+  scheduler:
+    image: percil/relaticle:latest
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    stop_signal: SIGTERM
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      APP_NAME: ${APP_NAME:-Relaticle}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_PANEL_DOMAIN: ${APP_PANEL_DOMAIN:-}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-relaticle}
+      DB_USERNAME: ${DB_USERNAME:-relaticle}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      # Server-to-server broadcast push to the reverb container. The Docker
+      # service name "reverb" is not a loopback host, so config/broadcasting.php
+      # would otherwise attempt TLS against a plain-HTTP container and every
+      # broadcast would fail silently. Never drop the explicit scheme here.
+      BROADCAST_REVERB_HOST: reverb
+      BROADCAST_REVERB_PORT: 8080
+      BROADCAST_REVERB_SCHEME: http
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
+      # Disable automations for scheduler container
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - storage:/var/www/html/storage/app
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+
+  reverb:
+    image: percil/relaticle:latest
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    stop_signal: SIGTERM
+    # Published so the browser has a socket to open: without this port the
+    # whole point of "download compose.yml, docker compose up -d" breaks for
+    # real-time chat. A self-hoster terminating TLS in front of Reverb should
+    # front this port with their reverse proxy and set REVERB_SCHEME=https.
+    ports:
+      - "${REVERB_PORT:-8080}:8080"
+    environment:
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      # Load-bearing, not boilerplate: Reverb builds allowed_origins from
+      # config('app.url') inside this container, so a missing/wrong value
+      # closes every browser handshake with code 4009.
+      APP_URL: ${APP_URL:-http://localhost}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      REVERB_APP_ID: ${REVERB_APP_ID:?REVERB_APP_ID is required}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?REVERB_APP_KEY is required}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}
+      # Escape hatch for a self-hoster whose WebSocket origin differs from APP_URL.
+      REVERB_ALLOWED_ORIGIN_EXTRA: ${REVERB_ALLOWED_ORIGIN_EXTRA:-}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "healthcheck-reverb"]
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis:
+  storage:
