@@ -246,12 +246,15 @@ services:
     restart: unless-stopped
     command: ["php", "/var/www/html/artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     stop_signal: SIGTERM
-    # Published so the browser has a socket to open: without this port the
-    # whole point of "download compose.yml, docker compose up -d" breaks for
-    # real-time chat. A self-hoster terminating TLS in front of Reverb should
-    # front this port with their reverse proxy and set REVERB_SCHEME=https.
+    # Published so a reverse proxy has a socket to reach. Deliberately a
+    # SEPARATE variable from REVERB_PORT below: REVERB_PORT is also what gets
+    # baked into the page as the port the BROWSER dials (config/broadcasting.php,
+    # resources/js/echo.js). Behind Caddy/nginx terminating TLS on 443, the
+    # browser must be told 443 (REVERB_PORT=443) while Docker's own host-port
+    # publish has to stay off 443, since Caddy already owns it. Sharing one
+    # variable for both would force them to the same value and break one side.
     ports:
-      - "${REVERB_PORT:-8080}:8080"
+      - "${REVERB_PUBLISH_PORT:-8080}:8080"
     environment:
       APP_KEY: ${APP_KEY:?APP_KEY is required}
       APP_ENV: ${APP_ENV:-production}
